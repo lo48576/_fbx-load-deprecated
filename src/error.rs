@@ -16,6 +16,7 @@ pub enum Error {
     IoError(io::Error),
     ParseError(fbx_binary_reader::Error),
     UnclassifiedCritical(String),
+    UnsupportedVersion(String),
 }
 
 impl fmt::Display for Error {
@@ -24,6 +25,7 @@ impl fmt::Display for Error {
             Error::IoError(ref err) => write!(f, "I/O error: {}", err),
             Error::ParseError(ref err) => write!(f, "Parse error: {}", err),
             Error::UnclassifiedCritical(ref err) => write!(f, "Unclassified critical error: {}", err),
+            Error::UnsupportedVersion(ref err) => write!(f, "Unsupported version: {}", err),
         }
     }
 }
@@ -34,6 +36,7 @@ impl error::Error for Error {
             Error::IoError(ref err) => err.description(),
             Error::ParseError(ref err) => err.description(),
             Error::UnclassifiedCritical(_) => "Unclassified critical error",
+            Error::UnsupportedVersion(_) => "Unsupported version",
         }
     }
 

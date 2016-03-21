@@ -2,6 +2,7 @@
 
 use std::io::Read;
 use fbx_binary_reader::EventReader;
+use definitions::{Definitions, DefinitionsLoader};
 use error::{Error, Result};
 use fbx_header_extension::{FbxHeaderExtension, FbxHeaderExtensionLoader};
 use node_loader::{NodeLoader, RawNodeInfo, ignore_current_node};
@@ -12,9 +13,10 @@ pub struct FbxScene {
     pub fbx_header_extension: FbxHeaderExtension,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct FbxSceneLoader {
-    pub fbx_header_extension: Option<FbxHeaderExtension>,
+    fbx_header_extension: Option<FbxHeaderExtension>,
+    definitions: Option<Definitions>,
 }
 
 impl FbxSceneLoader {
@@ -31,6 +33,9 @@ impl<R: Read> NodeLoader<R> for FbxSceneLoader {
         match name.as_ref() {
             "FBXHeaderExtension" => {
                 self.fbx_header_extension = Some(try!(FbxHeaderExtensionLoader::new().load(reader)));
+            },
+            "Definitions" => {
+                self.definitions = Some(try!(DefinitionsLoader::new().load(reader)));
             },
             _ => {
                 warn!("Unknown node: `{}`", name);

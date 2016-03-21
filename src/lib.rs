@@ -9,8 +9,10 @@ pub use scene::FbxScene;
 use std::io::Read;
 use std::path::Path;
 
+pub mod definitions;
 pub mod error;
 pub mod fbx_header_extension;
+pub mod property;
 pub mod scene;
 
 mod node_loader;

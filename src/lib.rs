@@ -10,7 +10,10 @@ use std::io::Read;
 use std::path::Path;
 
 pub mod error;
+pub mod fbx_header_extension;
 pub mod scene;
+
+mod node_loader;
 
 
 /// Load FBX from the given path.

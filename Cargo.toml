@@ -1,0 +1,8 @@
+[package]
+name = "fbx-load"
+version = "0.0.1"
+authors = ["Takuma Yoshioka <nu11p0.6477@gmail.com>"]
+
+[dependencies]
+log = "^0.3"
+fbx-binary-reader = { git = "https://github.com/l1048576/fbx-binary-reader.git", rev = "74cfce3a4ec5f2385552bc82ef023d2171e528d0" }

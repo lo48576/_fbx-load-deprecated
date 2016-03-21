@@ -11,6 +11,7 @@ use std::path::Path;
 
 pub mod error;
 pub mod fbx_header_extension;
+pub mod property;
 pub mod scene;
 
 mod node_loader;

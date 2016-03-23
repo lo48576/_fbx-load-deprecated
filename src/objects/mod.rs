@@ -1,6 +1,7 @@
 //! Contains `/Objects` node-related stuff.
 
 pub use self::collection::DisplayLayer;
+pub use self::video::Video;
 
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -9,9 +10,10 @@ use fbx_binary_reader::EventReader;
 use fnv::FnvHasher;
 use definitions::Definitions;
 use error::Result;
-use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
+use node_loader::{FormatConvert, NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use self::collection::{CollectionExclusive, CollectionExclusiveLoader};
 use self::properties::ObjectProperties;
+use self::video::VideoLoader;
 
 #[macro_use]
 mod macros {
@@ -33,19 +35,36 @@ mod macros {
 
 pub mod collection;
 pub mod properties;
+pub mod video;
 
 
 pub type ObjectsMap<V> = HashMap<i64, V, BuildHasherDefault<FnvHasher>>;
 
 #[derive(Debug, Default, Clone)]
-pub struct Objects {
+pub struct Objects<I: Clone> {
     pub unknown: ObjectsMap<UnknownObject>,
     pub display_layers: ObjectsMap<DisplayLayer>,
+    pub videos: ObjectsMap<Video<I>>,
+}
+
+impl<I: Clone> Objects<I> {
+    pub fn new() -> Self {
+        // TODO: It doesn't seem rustc-1.7.0 work correctly, `Default::default()` cannot compile
+        //       (> error: the trait `core::default::Default` is not implemented for the type `I` [E0277]).
+        //       See [#[derive] is too conservative with field trait bounds · Issue #26925 ·
+        //       rust-lang/rust](https://github.com/rust-lang/rust/issues/26925).
+        //Default::default()
+        Objects {
+            unknown: Default::default(),
+            display_layers: Default::default(),
+            videos: Default::default(),
+        }
+    }
 }
 
 macro_rules! implement_method_for_object {
     ($plural:ident, $t:ty, $add_method:ident) => (
-        impl Objects {
+        impl<I: Clone> Objects<I> {
             pub fn $add_method(&mut self, obj: $t) {
                 self.$plural.insert(obj.id, obj);
             }
@@ -54,23 +73,26 @@ macro_rules! implement_method_for_object {
 }
 implement_method_for_object!(unknown, UnknownObject, add_unknown);
 implement_method_for_object!(display_layers, DisplayLayer, add_display_layer);
+implement_method_for_object!(videos, Video<I>, add_video);
 
 #[derive(Debug)]
-pub struct ObjectsLoader<'a> {
-    objects: &'a mut Objects,
+pub struct ObjectsLoader<'a, C: 'a + FormatConvert> {
+    objects: &'a mut Objects<C::ImageResult>,
     definitions: &'a Definitions,
+    converter: &'a mut C,
 }
 
-impl<'a> ObjectsLoader<'a> {
-    pub fn new(objects: &'a mut Objects, definitions: &'a Definitions) -> Self {
+impl<'a, C: 'a + FormatConvert> ObjectsLoader<'a, C> {
+    pub fn new(objects: &'a mut Objects<C::ImageResult>, definitions: &'a Definitions, converter: &'a mut C) -> Self {
         ObjectsLoader {
             objects: objects,
             definitions: definitions,
+            converter: converter,
         }
     }
 }
 
-impl<'a> NodeLoaderCommon for ObjectsLoader<'a> {
+impl<'a, C: FormatConvert> NodeLoaderCommon for ObjectsLoader<'a, C> {
     type Target = ();
 
     fn on_finish(self) -> Result<Self::Target> {
@@ -78,7 +100,7 @@ impl<'a> NodeLoaderCommon for ObjectsLoader<'a> {
     }
 }
 
-impl<'a, R: Read> NodeLoader<R> for ObjectsLoader<'a> {
+impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, properties } = node_info;
         let obj_props = if let Some(val) = ObjectProperties::from_node_properties(properties.iter()) {
@@ -92,6 +114,9 @@ impl<'a, R: Read> NodeLoader<R> for ObjectsLoader<'a> {
                 Some(CollectionExclusive::DisplayLayer(obj)) => self.objects.add_display_layer(obj),
                 Some(CollectionExclusive::Unknown(obj)) => self.objects.add_unknown(obj),
                 None => {},
+            },
+            "Video" => if let Ok(Some(obj)) = VideoLoader::new(self.definitions, &obj_props, self.converter).load(reader) {
+                self.objects.add_video(obj);
             },
             _ => {
                 warn!("Unknown object node: `/Objects/{}`", name);

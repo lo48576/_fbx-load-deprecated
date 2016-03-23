@@ -5,6 +5,7 @@ extern crate fnv;
 #[macro_use]
 extern crate log;
 
+pub use node_loader::FormatConvert;
 pub use scene::FbxScene;
 
 use std::io::Read;
@@ -21,16 +22,16 @@ mod node_loader;
 
 
 /// Load FBX from the given path.
-pub fn load_from_file<P: AsRef<Path>>(path: P) -> error::Result<FbxScene> {
+pub fn load_from_file<P: AsRef<Path>, C: FormatConvert>(path: P, converter: C) -> error::Result<FbxScene<C::ImageResult>> {
     use std::fs::File;
     use std::io::BufReader;
 
     let file = try!(File::open(path));
-    load_from_stream(&mut BufReader::new(file))
+    load_from_stream(&mut BufReader::new(file), converter)
 }
 
 /// Load FBX from the given stream.
-pub fn load_from_stream<R: Read>(source: &mut R) -> error::Result<FbxScene> {
+pub fn load_from_stream<R: Read, C: FormatConvert>(source: &mut R, converter: C) -> error::Result<FbxScene<C::ImageResult>> {
     use fbx_binary_reader::{FbxEvent, FbxHeaderInfo};
 
     let reader = &mut fbx_binary_reader::EventReader::new(source);
@@ -39,7 +40,7 @@ pub fn load_from_stream<R: Read>(source: &mut R) -> error::Result<FbxScene> {
         _ => unreachable!(),
     };
 
-    scene::load_scene(reader, fbx_version)
+    scene::load_scene(reader, fbx_version, converter)
 }
 
 /// Returns `Option<(name: &'a str, class: &'a str)>`

@@ -5,31 +5,37 @@ use fbx_binary_reader::EventReader;
 use definitions::{Definitions, DefinitionsLoader};
 use error::{Error, Result};
 use fbx_header_extension::{FbxHeaderExtension, FbxHeaderExtensionLoader};
-use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
+use node_loader::{FormatConvert, NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use objects::{Objects, ObjectsLoader};
 
 
 #[derive(Debug, Clone)]
-pub struct FbxScene {
+pub struct FbxScene<I: Clone> {
     pub fbx_header_extension: FbxHeaderExtension,
-    pub objects: Objects,
+    pub objects: Objects<I>,
 }
 
-#[derive(Debug, Default)]
-pub struct FbxSceneLoader {
+#[derive(Debug)]
+pub struct FbxSceneLoader<C: FormatConvert> {
+    converter: C,
     fbx_header_extension: Option<FbxHeaderExtension>,
     definitions: Option<Definitions>,
-    objects: Objects,
+    objects: Objects<C::ImageResult>,
 }
 
-impl FbxSceneLoader {
-    pub fn new(_fbx_version: i32) -> Self {
-        Default::default()
+impl<C: FormatConvert>  FbxSceneLoader<C> {
+    pub fn new(_fbx_version: i32, converter: C) -> Self {
+        FbxSceneLoader {
+            converter: converter,
+            fbx_header_extension: None,
+            definitions: None,
+            objects: Objects::new(),
+        }
     }
 }
 
-impl NodeLoaderCommon for FbxSceneLoader {
-    type Target = FbxScene;
+impl<C: FormatConvert> NodeLoaderCommon for FbxSceneLoader<C> {
+    type Target = FbxScene<C::ImageResult>;
 
     fn on_finish(self) -> Result<Self::Target> {
         Ok(FbxScene {
@@ -39,7 +45,7 @@ impl NodeLoaderCommon for FbxSceneLoader {
     }
 }
 
-impl<R: Read> NodeLoader<R> for FbxSceneLoader {
+impl<R: Read, C: FormatConvert> NodeLoader<R> for FbxSceneLoader<C> {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, .. } = node_info;
         match name.as_ref() {
@@ -51,7 +57,7 @@ impl<R: Read> NodeLoader<R> for FbxSceneLoader {
             },
             "Objects" => {
                 let defs = try!(self.definitions.as_mut().ok_or(Error::UnclassifiedCritical("`Definitions` is required before `Objects` node".to_owned())));
-                try!(ObjectsLoader::new(&mut self.objects, defs).load(reader));
+                try!(ObjectsLoader::new(&mut self.objects, defs, &mut self.converter).load(reader));
             },
             _ => {
                 warn!("Unknown node: `{}`", name);
@@ -62,6 +68,6 @@ impl<R: Read> NodeLoader<R> for FbxSceneLoader {
     }
 }
 
-pub fn load_scene<R: Read>(reader: &mut EventReader<R>, fbx_version: i32) -> Result<FbxScene> {
-    FbxSceneLoader::new(fbx_version).load(reader)
+pub fn load_scene<R: Read, C: FormatConvert>(reader: &mut EventReader<R>, fbx_version: i32, converter: C) -> Result<FbxScene<C::ImageResult>> {
+    FbxSceneLoader::new(fbx_version, converter).load(reader)
 }

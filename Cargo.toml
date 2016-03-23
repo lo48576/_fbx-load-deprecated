@@ -5,4 +5,4 @@ authors = ["Takuma Yoshioka <nu11p0.6477@gmail.com>"]
 
 [dependencies]
 log = "^0.3"
-fbx-binary-reader = { git = "https://github.com/l1048576/fbx-binary-reader.git", rev = "3063931554079ea6fdc315482383ab09ad407e16" }
+fbx-binary-reader = { git = "https://github.com/l1048576/fbx-binary-reader.git", rev = "cb316dfcb3826d36b7765d9ecc1ca9a2326a77f2" }

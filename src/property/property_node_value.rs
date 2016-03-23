@@ -4,7 +4,7 @@ use std::borrow::Cow;
 pub enum PropertyNodeValue {
     Empty,
     Blob(Vec<u8>),
-    String(String),
+    String(Result<String, Vec<u8>>),
     F32(f32),
     F64(f64),
     VecF32(Vec<f32>),
@@ -30,12 +30,26 @@ impl PropertyNodeValue {
 
     pub fn get_string(&self) -> Option<&String> {
         match *self {
-            PropertyNodeValue::String(ref val) => Some(&val),
+            PropertyNodeValue::String(Ok(ref val)) => Some(&val),
             _ => None,
         }
     }
 
     pub fn into_string(self) -> Result<String, Self> {
+        match self {
+            PropertyNodeValue::String(Ok(val)) => Ok(val),
+            val => Err(val),
+        }
+    }
+
+    pub fn get_string_or_raw(&self) -> Option<&Result<String, Vec<u8>>> {
+        match *self {
+            PropertyNodeValue::String(ref val) => Some(&val),
+            _ => None,
+        }
+    }
+
+    pub fn into_string_or_raw(self) -> Result<Result<String, Vec<u8>>, Self> {
         match self {
             PropertyNodeValue::String(val) => Ok(val),
             val => Err(val),

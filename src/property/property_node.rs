@@ -99,7 +99,7 @@ impl<'a> PropertyNodeLoader<'a> {
                             }
                         },
                         // Vec<String> does not seem to exist.
-                        Property::String(val) => PropertyNodeValue::String(val.to_owned()),
+                        Property::String(val) => PropertyNodeValue::String(val.map(|v| v.to_owned()).map_err(Into::into)),
                         val => {
                             // Unexpected type. Discard the property.
                             // (bool, Vec<bool> and Vec<Vec<_>> don't seems to exist.)

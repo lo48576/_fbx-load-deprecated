@@ -1,8 +1,8 @@
 //! This crate provides types and functions useful to use FBX data.
 
+extern crate fbx_binary_reader;
 #[macro_use]
 extern crate log;
-extern crate fbx_binary_reader;
 
 pub use scene::FbxScene;
 

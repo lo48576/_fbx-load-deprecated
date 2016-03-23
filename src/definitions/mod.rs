@@ -31,7 +31,6 @@ impl NodeLoaderCommon for DefinitionsLoader {
     type Target = Definitions;
 
     fn on_finish(self) -> Result<Self::Target> {
-debug!("Definitions.templates: {:#?}", self.templates);
         Ok(Definitions {
             templates: self.templates,
         })

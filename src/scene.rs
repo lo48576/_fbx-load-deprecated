@@ -6,17 +6,20 @@ use definitions::{Definitions, DefinitionsLoader};
 use error::{Error, Result};
 use fbx_header_extension::{FbxHeaderExtension, FbxHeaderExtensionLoader};
 use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
+use objects::Objects;
 
 
 #[derive(Debug, Clone)]
 pub struct FbxScene {
     pub fbx_header_extension: FbxHeaderExtension,
+    pub objects: Objects,
 }
 
 #[derive(Debug, Default)]
 pub struct FbxSceneLoader {
     fbx_header_extension: Option<FbxHeaderExtension>,
     definitions: Option<Definitions>,
+    objects: Objects,
 }
 
 impl FbxSceneLoader {
@@ -31,6 +34,7 @@ impl NodeLoaderCommon for FbxSceneLoader {
     fn on_finish(self) -> Result<Self::Target> {
         Ok(FbxScene {
             fbx_header_extension: try!(self.fbx_header_extension.ok_or(Error::UnclassifiedCritical("Required node not found".to_owned()))),
+            objects: self.objects,
         })
     }
 }

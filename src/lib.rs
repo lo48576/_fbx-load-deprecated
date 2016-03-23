@@ -12,6 +12,7 @@ use std::path::Path;
 pub mod definitions;
 pub mod error;
 pub mod fbx_header_extension;
+pub mod objects;
 pub mod property;
 pub mod scene;
 

@@ -90,7 +90,6 @@ impl<'a, R: Read> NodeLoader<R> for PropertyTemplatesLoader<'a> {
                 if let Some(template_name) = properties.iter().next().and_then(|p| p.get_string()) {
                     let template = try!(PropertyTemplateLoader::new().load(reader));
                     self.templates.templates.insert((self.object_type.to_owned(), template_name.to_owned()), template);
-                    warn!("Template: ({}, {})", self.object_type, template_name);
                 } else {
                     error!("Invalid property at `/Definitions/ObjectType/PropertyTemplate`: type error");
                     try!(ignore_current_node(reader));

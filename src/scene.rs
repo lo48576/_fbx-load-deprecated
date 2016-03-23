@@ -6,7 +6,7 @@ use definitions::{Definitions, DefinitionsLoader};
 use error::{Error, Result};
 use fbx_header_extension::{FbxHeaderExtension, FbxHeaderExtensionLoader};
 use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
-use objects::Objects;
+use objects::{Objects, ObjectsLoader};
 
 
 #[derive(Debug, Clone)]
@@ -48,6 +48,10 @@ impl<R: Read> NodeLoader<R> for FbxSceneLoader {
             },
             "Definitions" => {
                 self.definitions = Some(try!(DefinitionsLoader::new().load(reader)));
+            },
+            "Objects" => {
+                let defs = try!(self.definitions.as_mut().ok_or(Error::UnclassifiedCritical("`Definitions` is required before `Objects` node".to_owned())));
+                try!(ObjectsLoader::new(&mut self.objects, defs).load(reader));
             },
             _ => {
                 warn!("Unknown node: `{}`", name);

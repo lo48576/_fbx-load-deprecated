@@ -1,7 +1,7 @@
 use std::io::Read;
 use fbx_binary_reader::{EventReader, Property, PropertiesIter};
 use error::Result;
-use node_loader::{NodeLoader, RawNodeInfo, ignore_current_node};
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use super::{PropertyFlags, PropertyNodeValue};
 
 
@@ -120,9 +120,21 @@ impl<'a> PropertyNodeLoader<'a> {
     }
 }
 
-impl<'a, R: Read> NodeLoader<R> for PropertyNodeLoader<'a> {
+impl<'a> NodeLoaderCommon for PropertyNodeLoader<'a> {
     type Target = Option<PropertyNode>;
 
+    fn on_finish(self) -> Result<Self::Target> {
+        let PropertyNodeLoader { type_name, label, flags, value } = self;
+        Ok(value.map(|value| PropertyNode {
+            type_name: type_name.to_owned(),
+            label: label.to_owned(),
+            flags: flags,
+            value: value,
+        }))
+    }
+}
+
+impl<'a, R: Read> NodeLoader<R> for PropertyNodeLoader<'a> {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, properties } = node_info;
         if self.type_name == "Blob" {
@@ -149,15 +161,5 @@ impl<'a, R: Read> NodeLoader<R> for PropertyNodeLoader<'a> {
         }
         try!(ignore_current_node(reader));
         Ok(())
-    }
-
-    fn on_finish(self) -> Result<Self::Target> {
-        let PropertyNodeLoader { type_name, label, flags, value } = self;
-        Ok(value.map(|value| PropertyNode {
-            type_name: type_name.to_owned(),
-            label: label.to_owned(),
-            flags: flags,
-            value: value,
-        }))
     }
 }

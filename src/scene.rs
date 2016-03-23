@@ -5,7 +5,7 @@ use fbx_binary_reader::EventReader;
 use definitions::{Definitions, DefinitionsLoader};
 use error::{Error, Result};
 use fbx_header_extension::{FbxHeaderExtension, FbxHeaderExtensionLoader};
-use node_loader::{NodeLoader, RawNodeInfo, ignore_current_node};
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 
 
 #[derive(Debug, Clone)]
@@ -25,9 +25,17 @@ impl FbxSceneLoader {
     }
 }
 
-impl<R: Read> NodeLoader<R> for FbxSceneLoader {
+impl NodeLoaderCommon for FbxSceneLoader {
     type Target = FbxScene;
 
+    fn on_finish(self) -> Result<Self::Target> {
+        Ok(FbxScene {
+            fbx_header_extension: try!(self.fbx_header_extension.ok_or(Error::UnclassifiedCritical("Required node not found".to_owned()))),
+        })
+    }
+}
+
+impl<R: Read> NodeLoader<R> for FbxSceneLoader {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, .. } = node_info;
         match name.as_ref() {
@@ -43,12 +51,6 @@ impl<R: Read> NodeLoader<R> for FbxSceneLoader {
             },
         }
         Ok(())
-    }
-
-    fn on_finish(self) -> Result<Self::Target> {
-        Ok(FbxScene {
-            fbx_header_extension: try!(self.fbx_header_extension.ok_or(Error::UnclassifiedCritical("Required node not found".to_owned()))),
-        })
     }
 }
 

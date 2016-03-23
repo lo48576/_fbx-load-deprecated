@@ -3,7 +3,7 @@
 use std::io::Read;
 use fbx_binary_reader::EventReader;
 use error::Result;
-use node_loader::{NodeLoader, RawNodeInfo, ignore_current_node};
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use self::template::{PropertyTemplates, PropertyTemplatesLoader};
 
 pub mod template;
@@ -25,9 +25,18 @@ impl DefinitionsLoader {
     }
 }
 
-impl<R: Read> NodeLoader<R> for DefinitionsLoader {
+impl NodeLoaderCommon for DefinitionsLoader {
     type Target = Definitions;
 
+    fn on_finish(self) -> Result<Self::Target> {
+debug!("Definitions.templates: {:#?}", self.templates);
+        Ok(Definitions {
+            templates: self.templates,
+        })
+    }
+}
+
+impl<R: Read> NodeLoader<R> for DefinitionsLoader {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, properties } = node_info;
         match name.as_ref() {
@@ -60,12 +69,5 @@ impl<R: Read> NodeLoader<R> for DefinitionsLoader {
             },
         }
         Ok(())
-    }
-
-    fn on_finish(self) -> Result<Self::Target> {
-debug!("Definitions.templates: {:#?}", self.templates);
-        Ok(Definitions {
-            templates: self.templates,
-        })
     }
 }

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use fbx_binary_reader::EventReader;
 use error::Result;
-use node_loader::{NodeLoader, RawNodeInfo, ignore_current_node};
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use property::{GenericProperties, GenericPropertiesLoader};
 
 
@@ -24,9 +24,17 @@ impl PropertyTemplateLoader {
     }
 }
 
-impl<R: Read> NodeLoader<R> for PropertyTemplateLoader {
+impl NodeLoaderCommon for PropertyTemplateLoader {
     type Target = PropertyTemplate;
 
+    fn on_finish(self) -> Result<Self::Target> {
+        Ok(PropertyTemplate {
+            properties: self.properties.unwrap_or_default(),
+        })
+    }
+}
+
+impl<R: Read> NodeLoader<R> for PropertyTemplateLoader {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, .. } = node_info;
         match name.as_ref() {
@@ -39,12 +47,6 @@ impl<R: Read> NodeLoader<R> for PropertyTemplateLoader {
             },
         }
         Ok(())
-    }
-
-    fn on_finish(self) -> Result<Self::Target> {
-        Ok(PropertyTemplate {
-            properties: self.properties.unwrap_or_default(),
-        })
     }
 }
 
@@ -69,9 +71,15 @@ impl<'a> PropertyTemplatesLoader<'a> {
     }
 }
 
-impl<'a, R: Read> NodeLoader<R> for PropertyTemplatesLoader<'a> {
+impl<'a> NodeLoaderCommon for PropertyTemplatesLoader<'a> {
     type Target = ();
 
+    fn on_finish(self) -> Result<Self::Target> {
+        Ok(())
+    }
+}
+
+impl<'a, R: Read> NodeLoader<R> for PropertyTemplatesLoader<'a> {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, properties } = node_info;
         match name.as_ref() {
@@ -93,10 +101,6 @@ impl<'a, R: Read> NodeLoader<R> for PropertyTemplatesLoader<'a> {
                 try!(ignore_current_node(reader));
             },
         }
-        Ok(())
-    }
-
-    fn on_finish(self) -> Result<Self::Target> {
         Ok(())
     }
 }

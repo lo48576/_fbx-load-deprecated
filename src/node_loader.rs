@@ -13,10 +13,17 @@ pub struct RawNodeInfo {
     pub properties: DelayedProperties,
 }
 
-pub trait NodeLoader<R: Read>: Sized {
+pub trait NodeLoaderCommon: Sized {
     type Target;
 
-    fn load(mut self, reader: &mut EventReader<R>) -> Result<Self::Target> {
+    /// Executed on node end.
+    ///
+    /// This is user-defined function.
+    fn on_finish(self) -> Result<Self::Target>;
+}
+
+pub trait NodeLoader<R: Read>: NodeLoaderCommon {
+    fn load(mut self, reader: &mut EventReader<R>) -> Result<<Self as NodeLoaderCommon>::Target> {
         loop {
             match try!(reader.next()) {
                 FbxEvent::StartFbx(_) => unreachable!(),
@@ -37,11 +44,6 @@ pub trait NodeLoader<R: Read>: Sized {
         try!(ignore_current_node(reader));
         Ok(())
     }
-
-    /// Executed on node end.
-    ///
-    /// This is user-defined function.
-    fn on_finish(self) -> Result<Self::Target>;
 }
 
 pub fn ignore_current_node<R: Read>(reader: &mut EventReader<R>) -> Result<()> {

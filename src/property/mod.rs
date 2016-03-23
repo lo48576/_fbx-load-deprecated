@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use fbx_binary_reader::EventReader;
 use error::Result;
-use node_loader::{NodeLoader, RawNodeInfo, ignore_current_node};
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 
 pub mod flags;
 pub mod property_node;
@@ -33,9 +33,17 @@ impl GenericPropertiesLoader {
     }
 }
 
-impl<R: Read> NodeLoader<R> for GenericPropertiesLoader {
+impl NodeLoaderCommon for GenericPropertiesLoader {
     type Target = GenericProperties;
 
+    fn on_finish(self) -> Result<Self::Target> {
+        Ok(GenericProperties {
+            properties: self.properties,
+        })
+    }
+}
+
+impl<R: Read> NodeLoader<R> for GenericPropertiesLoader {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         let RawNodeInfo { name, properties } = node_info;
         match name.as_ref() {
@@ -60,11 +68,5 @@ impl<R: Read> NodeLoader<R> for GenericPropertiesLoader {
             },
         }
         Ok(())
-    }
-
-    fn on_finish(self) -> Result<Self::Target> {
-        Ok(GenericProperties {
-            properties: self.properties,
-        })
     }
 }

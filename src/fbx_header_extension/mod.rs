@@ -3,7 +3,7 @@
 use std::io::Read;
 use fbx_binary_reader::EventReader;
 use error::Result;
-use node_loader::{NodeLoader, RawNodeInfo, ignore_current_node};
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 
 
 #[derive(Debug, Clone)]
@@ -18,16 +18,18 @@ impl FbxHeaderExtensionLoader {
     }
 }
 
-impl<R: Read> NodeLoader<R> for FbxHeaderExtensionLoader {
+impl NodeLoaderCommon for FbxHeaderExtensionLoader {
     type Target = FbxHeaderExtension;
 
+    fn on_finish(self) -> Result<Self::Target> {
+        Ok(FbxHeaderExtension)
+    }
+}
+
+impl<R: Read> NodeLoader<R> for FbxHeaderExtensionLoader {
     fn on_child_node(&mut self, reader: &mut EventReader<R>, node_info: RawNodeInfo) -> Result<()> {
         warn!("Ignoring node: {:?}", node_info);
         try!(ignore_current_node(reader));
         Ok(())
-    }
-
-    fn on_finish(self) -> Result<Self::Target> {
-        Ok(FbxHeaderExtension)
     }
 }

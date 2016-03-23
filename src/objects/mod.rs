@@ -1,5 +1,7 @@
 //! Contains `/Objects` node-related stuff.
 
+pub use self::collection::DisplayLayer;
+
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::io::Read;
@@ -8,8 +10,28 @@ use fnv::FnvHasher;
 use definitions::Definitions;
 use error::Result;
 use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
+use self::collection::{CollectionExclusive, CollectionExclusiveLoader};
 use self::properties::ObjectProperties;
 
+#[macro_use]
+mod macros {
+    macro_rules! if_all_some {
+        // Specialize for single variable.
+        {($v:ident=$e:expr) $some_block:block else $none_block:block} => (
+            if let Some($v) = $e $some_block else $none_block
+        );
+        // Comma-separated multiple variables.
+        {($($v:ident=$e:expr),+) $some_block:block else $none_block:block} => (
+            if let ($(Some($v)),+) = ($($e),+) $some_block else $none_block
+        );
+        // Allow trailing comma.
+        {($($v:ident=$e:expr),+,) $some_block:block else $none_block:block} => (
+            if let ($(Some($v)),+) = ($($e),+) $some_block else $none_block
+        );
+    }
+}
+
+pub mod collection;
 pub mod properties;
 
 
@@ -18,6 +40,7 @@ pub type ObjectsMap<V> = HashMap<i64, V, BuildHasherDefault<FnvHasher>>;
 #[derive(Debug, Default, Clone)]
 pub struct Objects {
     pub unknown: ObjectsMap<UnknownObject>,
+    pub display_layers: ObjectsMap<DisplayLayer>,
 }
 
 macro_rules! implement_method_for_object {
@@ -30,6 +53,7 @@ macro_rules! implement_method_for_object {
     )
 }
 implement_method_for_object!(unknown, UnknownObject, add_unknown);
+implement_method_for_object!(display_layers, DisplayLayer, add_display_layer);
 
 #[derive(Debug)]
 pub struct ObjectsLoader<'a> {
@@ -63,14 +87,23 @@ impl<'a, R: Read> NodeLoader<R> for ObjectsLoader<'a> {
             try!(ignore_current_node(reader));
             return Ok(());
         };
-        warn!("Unknown object node: `/Objects/{}`", name);
-        self.objects.unknown.insert(obj_props.id, UnknownObject {
-            id: obj_props.id,
-            name: obj_props.name.to_owned(),
-            class: obj_props.class.to_owned(),
-            subclass: obj_props.subclass.to_owned(),
-        });
-        try!(ignore_current_node(reader));
+        match name.as_ref() {
+            "CollectionExclusive" => match try!(CollectionExclusiveLoader::new(self.definitions, &obj_props).load(reader)) {
+                Some(CollectionExclusive::DisplayLayer(obj)) => self.objects.add_display_layer(obj),
+                Some(CollectionExclusive::Unknown(obj)) => self.objects.add_unknown(obj),
+                None => {},
+            },
+            _ => {
+                warn!("Unknown object node: `/Objects/{}`", name);
+                self.objects.unknown.insert(obj_props.id, UnknownObject {
+                    id: obj_props.id,
+                    name: obj_props.name.to_owned(),
+                    class: obj_props.class.to_owned(),
+                    subclass: obj_props.subclass.to_owned(),
+                });
+                try!(ignore_current_node(reader));
+            },
+        }
         Ok(())
     }
 }

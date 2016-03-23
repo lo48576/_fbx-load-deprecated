@@ -1,10 +1,12 @@
 //! Contains `/Definitions` node-related stuff.
 
+pub use self::template::{PropertyTemplate, PropertyTemplates};
+
 use std::io::Read;
 use fbx_binary_reader::EventReader;
 use error::Result;
 use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
-use self::template::{PropertyTemplates, PropertyTemplatesLoader};
+use self::template::PropertyTemplatesLoader;
 
 pub mod template;
 

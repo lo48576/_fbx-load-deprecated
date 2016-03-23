@@ -1,6 +1,7 @@
 //! This crate provides types and functions useful to use FBX data.
 
 extern crate fbx_binary_reader;
+extern crate fnv;
 #[macro_use]
 extern crate log;
 
@@ -39,4 +40,9 @@ pub fn load_from_stream<R: Read>(source: &mut R) -> error::Result<FbxScene> {
     };
 
     scene::load_scene(reader, fbx_version)
+}
+
+/// Returns `Option<(name: &'a str, class: &'a str)>`
+fn separate_name_class<'a>(name_class: &'a str) -> Option<(&'a str, &'a str)> {
+    name_class.find("\u{0}\u{1}").map(|sep_pos| (&name_class[0..sep_pos], &name_class[sep_pos+2..]))
 }

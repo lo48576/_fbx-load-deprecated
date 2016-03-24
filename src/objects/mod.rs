@@ -1,6 +1,7 @@
 //! Contains `/Objects` node-related stuff.
 
 pub use self::collection::DisplayLayer;
+pub use self::deformer::{BlendShape, Skin, SkinningType};
 pub use self::texture::{Texture, BlendMode, WrapMode};
 pub use self::video::Video;
 
@@ -13,6 +14,7 @@ use definitions::Definitions;
 use error::Result;
 use node_loader::{FormatConvert, NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use self::collection::{CollectionExclusive, CollectionExclusiveLoader};
+use self::deformer::{Deformer, DeformerLoader};
 use self::properties::ObjectProperties;
 use self::texture::TextureLoader;
 use self::video::VideoLoader;
@@ -36,6 +38,7 @@ mod macros {
 }
 
 pub mod collection;
+pub mod deformer;
 pub mod properties;
 pub mod texture;
 pub mod video;
@@ -46,7 +49,9 @@ pub type ObjectsMap<V> = HashMap<i64, V, BuildHasherDefault<FnvHasher>>;
 #[derive(Debug, Default, Clone)]
 pub struct Objects<I: Clone> {
     pub unknown: ObjectsMap<UnknownObject>,
+    pub blend_shapes: ObjectsMap<BlendShape>,
     pub display_layers: ObjectsMap<DisplayLayer>,
+    pub skins: ObjectsMap<Skin>,
     pub textures: ObjectsMap<Texture>,
     pub videos: ObjectsMap<Video<I>>,
 }
@@ -60,7 +65,9 @@ impl<I: Clone> Objects<I> {
         //Default::default()
         Objects {
             unknown: Default::default(),
+            blend_shapes: Default::default(),
             display_layers: Default::default(),
+            skins: Default::default(),
             textures: Default::default(),
             videos: Default::default(),
         }
@@ -77,7 +84,9 @@ macro_rules! implement_method_for_object {
     )
 }
 implement_method_for_object!(unknown, UnknownObject, add_unknown);
+implement_method_for_object!(blend_shapes, BlendShape, add_blend_shape);
 implement_method_for_object!(display_layers, DisplayLayer, add_display_layer);
+implement_method_for_object!(skins, Skin, add_skin);
 implement_method_for_object!(textures, Texture, add_texture);
 implement_method_for_object!(videos, Video<I>, add_video);
 
@@ -119,6 +128,12 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
             "CollectionExclusive" => match try!(CollectionExclusiveLoader::new(self.definitions, &obj_props).load(reader)) {
                 Some(CollectionExclusive::DisplayLayer(obj)) => self.objects.add_display_layer(obj),
                 Some(CollectionExclusive::Unknown(obj)) => self.objects.add_unknown(obj),
+                None => {},
+            },
+            "Deformer" => match try!(DeformerLoader::new(self.definitions, &obj_props).load(reader)) {
+                Some(Deformer::BlendShape(obj)) => self.objects.add_blend_shape(obj),
+                Some(Deformer::Skin(obj)) => self.objects.add_skin(obj),
+                Some(Deformer::Unknown(obj)) => self.objects.add_unknown(obj),
                 None => {},
             },
             "Texture" => if let Ok(Some(obj)) = TextureLoader::new(self.definitions, &obj_props).load(reader) {

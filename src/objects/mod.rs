@@ -1,6 +1,7 @@
 //! Contains `/Objects` node-related stuff.
 
 pub use self::collection::DisplayLayer;
+pub use self::texture::{Texture, BlendMode, WrapMode};
 pub use self::video::Video;
 
 use std::collections::HashMap;
@@ -13,6 +14,7 @@ use error::Result;
 use node_loader::{FormatConvert, NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use self::collection::{CollectionExclusive, CollectionExclusiveLoader};
 use self::properties::ObjectProperties;
+use self::texture::TextureLoader;
 use self::video::VideoLoader;
 
 #[macro_use]
@@ -35,6 +37,7 @@ mod macros {
 
 pub mod collection;
 pub mod properties;
+pub mod texture;
 pub mod video;
 
 
@@ -44,6 +47,7 @@ pub type ObjectsMap<V> = HashMap<i64, V, BuildHasherDefault<FnvHasher>>;
 pub struct Objects<I: Clone> {
     pub unknown: ObjectsMap<UnknownObject>,
     pub display_layers: ObjectsMap<DisplayLayer>,
+    pub textures: ObjectsMap<Texture>,
     pub videos: ObjectsMap<Video<I>>,
 }
 
@@ -57,6 +61,7 @@ impl<I: Clone> Objects<I> {
         Objects {
             unknown: Default::default(),
             display_layers: Default::default(),
+            textures: Default::default(),
             videos: Default::default(),
         }
     }
@@ -73,6 +78,7 @@ macro_rules! implement_method_for_object {
 }
 implement_method_for_object!(unknown, UnknownObject, add_unknown);
 implement_method_for_object!(display_layers, DisplayLayer, add_display_layer);
+implement_method_for_object!(textures, Texture, add_texture);
 implement_method_for_object!(videos, Video<I>, add_video);
 
 #[derive(Debug)]
@@ -114,6 +120,9 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
                 Some(CollectionExclusive::DisplayLayer(obj)) => self.objects.add_display_layer(obj),
                 Some(CollectionExclusive::Unknown(obj)) => self.objects.add_unknown(obj),
                 None => {},
+            },
+            "Texture" => if let Ok(Some(obj)) = TextureLoader::new(self.definitions, &obj_props).load(reader) {
+                self.objects.add_texture(obj);
             },
             "Video" => if let Ok(Some(obj)) = VideoLoader::new(self.definitions, &obj_props, self.converter).load(reader) {
                 self.objects.add_video(obj);

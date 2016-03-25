@@ -160,7 +160,7 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
                 Some(Deformer::Unknown(obj)) => self.objects.add_unknown(obj),
                 None => {},
             },
-            "Material" => if let Ok(Some(obj)) = MaterialLoader::new(self.definitions, &obj_props).load(reader) {
+            "Material" => if let Some(obj) = try!(MaterialLoader::new(self.definitions, &obj_props).load(reader)) {
                 self.objects.add_material(obj);
             },
             "Model" => if let Some(obj) = try!(ModelLoader::new(self.definitions, &obj_props).load(reader)) {
@@ -174,13 +174,13 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
                     },
                 }
             },
-            "Pose" => if let Ok(Some(obj)) = PoseLoader::new(self.definitions, &obj_props).load(reader) {
+            "Pose" => if let Some(obj) = try!(PoseLoader::new(self.definitions, &obj_props).load(reader)) {
                 self.objects.add_pose(obj);
             },
-            "Texture" => if let Ok(Some(obj)) = TextureLoader::new(self.definitions, &obj_props).load(reader) {
+            "Texture" => if let Some(obj) = try!(TextureLoader::new(self.definitions, &obj_props).load(reader)) {
                 self.objects.add_texture(obj);
             },
-            "Video" => if let Ok(Some(obj)) = VideoLoader::new(self.definitions, &obj_props, self.converter).load(reader) {
+            "Video" => if let Some(obj) = try!(VideoLoader::new(self.definitions, &obj_props, self.converter).load(reader)) {
                 self.objects.add_video(obj);
             },
             _ => {

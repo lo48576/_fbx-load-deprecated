@@ -3,6 +3,7 @@
 pub use self::collection::DisplayLayer;
 pub use self::deformer::{BlendShape, Skin, SkinningType};
 pub use self::material::{Material, ShadingParameters};
+pub use self::model::{CullingType, Model};
 pub use self::pose::{Pose, PoseNode};
 pub use self::texture::{Texture, BlendMode, WrapMode};
 pub use self::video::Video;
@@ -18,6 +19,7 @@ use node_loader::{FormatConvert, NodeLoader, NodeLoaderCommon, RawNodeInfo, igno
 use self::collection::{CollectionExclusive, CollectionExclusiveLoader};
 use self::deformer::{Deformer, DeformerLoader};
 use self::material::MaterialLoader;
+use self::model::ModelLoader;
 use self::pose::PoseLoader;
 use self::properties::ObjectProperties;
 use self::texture::TextureLoader;
@@ -44,6 +46,7 @@ mod macros {
 pub mod collection;
 pub mod deformer;
 pub mod material;
+pub mod model;
 pub mod pose;
 pub mod properties;
 pub mod texture;
@@ -58,6 +61,9 @@ pub struct Objects<I: Clone> {
     pub blend_shapes: ObjectsMap<BlendShape>,
     pub display_layers: ObjectsMap<DisplayLayer>,
     pub materials: ObjectsMap<Material>,
+    pub model_limb_nodes: ObjectsMap<Model>,
+    pub model_meshes: ObjectsMap<Model>,
+    pub model_nulls: ObjectsMap<Model>,
     pub poses: ObjectsMap<Pose>,
     pub skins: ObjectsMap<Skin>,
     pub textures: ObjectsMap<Texture>,
@@ -76,6 +82,9 @@ impl<I: Clone> Objects<I> {
             blend_shapes: Default::default(),
             display_layers: Default::default(),
             materials: Default::default(),
+            model_limb_nodes: Default::default(),
+            model_meshes: Default::default(),
+            model_nulls: Default::default(),
             poses: Default::default(),
             skins: Default::default(),
             textures: Default::default(),
@@ -97,6 +106,9 @@ implement_method_for_object!(unknown, UnknownObject, add_unknown);
 implement_method_for_object!(blend_shapes, BlendShape, add_blend_shape);
 implement_method_for_object!(display_layers, DisplayLayer, add_display_layer);
 implement_method_for_object!(materials, Material, add_material);
+implement_method_for_object!(model_limb_nodes, Model, add_model_limb_node);
+implement_method_for_object!(model_meshes, Model, add_model_mesh);
+implement_method_for_object!(model_nulls, Model, add_model_null);
 implement_method_for_object!(poses, Pose, add_pose);
 implement_method_for_object!(skins, Skin, add_skin);
 implement_method_for_object!(textures, Texture, add_texture);
@@ -150,6 +162,17 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
             },
             "Material" => if let Ok(Some(obj)) = MaterialLoader::new(self.definitions, &obj_props).load(reader) {
                 self.objects.add_material(obj);
+            },
+            "Model" => if let Some(obj) = try!(ModelLoader::new(self.definitions, &obj_props).load(reader)) {
+                match obj_props.subclass {
+                    "LimbNode" => self.objects.add_model_limb_node(obj),
+                    "Mesh" => self.objects.add_model_mesh(obj),
+                    "Null" => self.objects.add_model_null(obj),
+                    val => {
+                        warn!("Unknown subclass({}) for `/Objects/Model` node, treat as UnknownObject", val);
+                        self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                    },
+                }
             },
             "Pose" => if let Ok(Some(obj)) = PoseLoader::new(self.definitions, &obj_props).load(reader) {
                 self.objects.add_pose(obj);

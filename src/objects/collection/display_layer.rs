@@ -41,7 +41,6 @@ impl<'a> NodeLoaderCommon for DisplayLayerLoader<'a> {
         let show = self.properties.get_or_default(defaults, "Show").and_then(|p| p.value.get_i64().map(|v| v != 0));
         let freeze = self.properties.get_or_default(defaults, "Freeze").and_then(|p| p.value.get_i64().map(|v| v != 0));
         let lod_box = self.properties.get_or_default(defaults, "LODBox").and_then(|p| p.value.get_i64().map(|v| v != 0));
-        // FIXME: Use `if_all_some!` macro.
         if_all_some!{(
             color=color,
             show=show,

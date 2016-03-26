@@ -70,7 +70,7 @@ impl<'a, R: Read> NodeLoader<R> for SkinLoader<'a> {
                 }
             },
             "Link_DeformAcuracy" => {
-                self.link_deform_accuracy = properties.iter().next().and_then(|p| p.get_f64());
+                self.link_deform_accuracy = properties.iter().next().and_then(|p| p.as_f64());
             },
             "SkinningType" => {
                 self.skinning_type = properties.iter().next().and_then(|p| p.get_string()).and_then(SkinningType::from_str);

@@ -76,25 +76,25 @@ impl<'a, R: Read> NodeLoader<R> for ShapeLoader<'a> {
                 }
             },
             "Indexes" => {
-                self.indices = properties.iter().next().and_then(|p| p.get_vec_i32().map(|v| v.into_iter().map(|&v| v as u32).collect()));
+                self.indices = properties.iter().next().and_then(|p| p.extract_vec_i32().ok()).map(|v| v.into_iter().map(|v| v as u32).collect());
             },
             "Vertices" => {
                 self.vertices = properties.iter().next()
-                    .and_then(|p| p.as_vec_f32())
-                    .into_iter().find(|vec| vec.len() > 0) // Prevent vec.chunks() from panicking.
-                    .map(|vec| {
-                        let len = vec.len() / 3;
-                        vec.chunks(3).take(len).map(|v| [v[0], v[1], v[2]]).collect()
-                    });
+                    .and_then(|p| p.as_vec_f32()
+                        .into_iter().find(|vec| vec.len() > 0) // Prevent vec.chunks() from panicking.
+                        .map(|vec| {
+                            let len = vec.len() / 3;
+                            vec.chunks(3).take(len).map(|v| [v[0], v[1], v[2]]).collect()
+                        }));
             },
             "Normals" => {
                 self.normals = properties.iter().next()
-                    .and_then(|p| p.as_vec_f32())
-                    .into_iter().find(|vec| vec.len() > 0) // Prevent vec.chunks() from panicking.
-                    .map(|vec| {
-                        let len = vec.len() / 3;
-                        vec.chunks(3).take(len).map(|v| [v[0], v[1], v[2]]).collect()
-                    });
+                    .and_then(|p| p.as_vec_f32()
+                        .into_iter().find(|vec| vec.len() > 0) // Prevent vec.chunks() from panicking.
+                        .map(|vec| {
+                            let len = vec.len() / 3;
+                            vec.chunks(3).take(len).map(|v| [v[0], v[1], v[2]]).collect()
+                        }));
             },
             _ => {
                 warn!("Unknown node: `/Objects/Geometry(Shape)/{}`", name);

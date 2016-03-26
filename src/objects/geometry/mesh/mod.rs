@@ -101,7 +101,7 @@ impl<'a, R: Read> NodeLoader<R> for MeshLoader<'a> {
                 try!(ignore_current_node(reader));
             },
             "PolygonVertexIndex" => {
-                self.polygon_vertex_index = properties.iter().next().and_then(|p| p.get_vec_i32().map(|v| v.into_iter().map(|&v| v as u32).collect()));
+                self.polygon_vertex_index = properties.iter().next().and_then(|p| p.extract_vec_i32().ok()).map(|v| v.into_iter().map(|v| v as u32).collect());
                 try!(ignore_current_node(reader));
             },
             "GeometryVersion" => {

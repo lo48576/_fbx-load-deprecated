@@ -116,23 +116,23 @@ impl LoadAsLayerElementElement for () {
 
 impl LoadAsLayerElementElement for [f32; 2] {
     fn node_properties_to_elements_array(properties: &DelayedProperties) -> Option<Vec<[f32; 2]>> {
-        properties.iter().next().and_then(|p| p.as_vec_f32())
+        properties.iter().next().and_then(|p| p.as_vec_f32()
             .into_iter().find(|v| v.len() > 0) // Prevent `slice::chunks()` from panicking.
             .map(|vec| {
                 let len = vec.len() / 2;
                 vec.chunks(2).take(len).map(|e| [e[0], e[1]]).collect()
-            })
+            }))
     }
 }
 
 impl LoadAsLayerElementElement for [f32; 3] {
     fn node_properties_to_elements_array(properties: &DelayedProperties) -> Option<Vec<[f32; 3]>> {
-        properties.iter().next().and_then(|p| p.as_vec_f32())
+        properties.iter().next().and_then(|p| p.as_vec_f32()
             .into_iter().find(|v| v.len() > 0) // Prevent `slice::chunks()` from panicking.
             .map(|vec| {
                 let len = vec.len() / 3;
                 vec.chunks(3).take(len).map(|e| [e[0], e[1], e[2]]).collect()
-            })
+            }))
     }
 }
 
@@ -235,7 +235,7 @@ impl<'a, T: LoadAsLayerElementElement, R: Read> NodeLoader<R> for LayerElementLo
                 self.data = T::node_properties_to_elements_array(&properties);
             },
             _ if name == self.index_node_name => {
-                self.index = properties.iter().next().and_then(|p| p.get_vec_i32().map(|v| v.into_iter().map(|&v| v as u32).collect()));
+                self.index = properties.iter().next().and_then(|p| p.extract_vec_i32().ok().map(|v| v.into_iter().map(|v| v as u32).collect()));
             },
             "NormalsW" => {}, // TODO: `NormalsW` may have euclidean norms of normals.
             _ => {

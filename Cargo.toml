@@ -4,6 +4,6 @@ version = "0.0.1"
 authors = ["Takuma Yoshioka <nu11p0.6477@gmail.com>"]
 
 [dependencies]
-fbx-binary-reader = { git = "https://github.com/l1048576/fbx-binary-reader.git", rev = "cb316dfcb3826d36b7765d9ecc1ca9a2326a77f2" }
+fbx-binary-reader = { git = "https://github.com/l1048576/fbx-binary-reader.git", rev = "c195e92ba2b1fd8224c729440cd1bc04a29383b4" }
 fnv = "^1.0"
 log = "^0.3"

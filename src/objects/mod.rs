@@ -32,6 +32,10 @@ mod macros {
         {($v:ident=$e:expr) $some_block:block else $none_block:block} => (
             if let Some($v) = $e $some_block else $none_block
         );
+        // Specialize for single variable with trailing comma.
+        {($v:ident=$e:expr,) $some_block:block else $none_block:block} => (
+            if let Some($v) = $e $some_block else $none_block
+        );
         // Comma-separated multiple variables.
         {($($v:ident=$e:expr),+) $some_block:block else $none_block:block} => (
             if let ($(Some($v)),+) = ($($e),+) $some_block else $none_block

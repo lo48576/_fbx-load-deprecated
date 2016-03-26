@@ -2,6 +2,7 @@
 
 pub use self::collection::DisplayLayer;
 pub use self::deformer::{BlendShape, Skin, SkinningType};
+pub use self::geometry::{Mesh, Shape, VertexIndex, MappingMode, ReferenceMode, LayerElement};
 pub use self::material::{Material, ShadingParameters};
 pub use self::model::{CullingType, Model};
 pub use self::pose::{Pose, PoseNode};
@@ -18,6 +19,7 @@ use error::Result;
 use node_loader::{FormatConvert, NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
 use self::collection::{CollectionExclusive, CollectionExclusiveLoader};
 use self::deformer::{Deformer, DeformerLoader};
+use self::geometry::{Geometry, GeometryLoader};
 use self::material::MaterialLoader;
 use self::model::ModelLoader;
 use self::pose::PoseLoader;
@@ -49,6 +51,7 @@ mod macros {
 
 pub mod collection;
 pub mod deformer;
+pub mod geometry;
 pub mod material;
 pub mod model;
 pub mod pose;
@@ -64,6 +67,8 @@ pub struct Objects<I: Clone> {
     pub unknown: ObjectsMap<UnknownObject>,
     pub blend_shapes: ObjectsMap<BlendShape>,
     pub display_layers: ObjectsMap<DisplayLayer>,
+    pub geometry_meshes: ObjectsMap<Mesh>,
+    pub geometry_shapes: ObjectsMap<Shape>,
     pub materials: ObjectsMap<Material>,
     pub model_limb_nodes: ObjectsMap<Model>,
     pub model_meshes: ObjectsMap<Model>,
@@ -85,6 +90,8 @@ impl<I: Clone> Objects<I> {
             unknown: Default::default(),
             blend_shapes: Default::default(),
             display_layers: Default::default(),
+            geometry_meshes: Default::default(),
+            geometry_shapes: Default::default(),
             materials: Default::default(),
             model_limb_nodes: Default::default(),
             model_meshes: Default::default(),
@@ -109,6 +116,8 @@ macro_rules! implement_method_for_object {
 implement_method_for_object!(unknown, UnknownObject, add_unknown);
 implement_method_for_object!(blend_shapes, BlendShape, add_blend_shape);
 implement_method_for_object!(display_layers, DisplayLayer, add_display_layer);
+implement_method_for_object!(geometry_meshes, Mesh, add_geometry_mesh);
+implement_method_for_object!(geometry_shapes, Shape, add_geometry_shape);
 implement_method_for_object!(materials, Material, add_material);
 implement_method_for_object!(model_limb_nodes, Model, add_model_limb_node);
 implement_method_for_object!(model_meshes, Model, add_model_mesh);
@@ -162,6 +171,12 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
                 Some(Deformer::BlendShape(obj)) => self.objects.add_blend_shape(obj),
                 Some(Deformer::Skin(obj)) => self.objects.add_skin(obj),
                 Some(Deformer::Unknown(obj)) => self.objects.add_unknown(obj),
+                None => {},
+            },
+            "Geometry" => match try!(GeometryLoader::new(self.definitions, &obj_props).load(reader)) {
+                Some(Geometry::Mesh(obj)) => self.objects.add_geometry_mesh(obj),
+                Some(Geometry::Shape(obj)) => self.objects.add_geometry_shape(obj),
+                Some(Geometry::Unknown(obj)) => self.objects.add_unknown(obj),
                 None => {},
             },
             "Material" => if let Some(obj) = try!(MaterialLoader::new(self.definitions, &obj_props).load(reader)) {

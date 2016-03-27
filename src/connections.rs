@@ -45,6 +45,10 @@ impl Connection {
             None
         }
     }
+
+    pub fn has_attribute<S: AsRef<str>>(&self, name: S) -> bool {
+        self.attribute.as_ref().map_or(false, |n| n == name.as_ref())
+    }
 }
 
 #[derive(Debug, Default)]

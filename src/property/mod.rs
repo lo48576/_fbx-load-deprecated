@@ -4,6 +4,7 @@ pub use self::property_node::{PropertyNode, PropertyNodeLoader};
 pub use self::property_node_value::PropertyNodeValue;
 pub use self::flags::PropertyFlags;
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::Read;
 use fbx_binary_reader::EventReader;
@@ -68,5 +69,33 @@ impl<R: Read> NodeLoader<R> for GenericPropertiesLoader {
             },
         }
         Ok(())
+    }
+}
+
+pub trait OptionalProperties {
+    fn get_or_default<'a>(&mut self, defaults: Option<&'a GenericProperties>, key: &str) -> Option<Cow<'a, PropertyNode>>;
+}
+
+impl OptionalProperties for GenericProperties {
+    fn get_or_default<'a>(&mut self, defaults: Option<&'a GenericProperties>, key: &str) -> Option<Cow<'a, PropertyNode>> {
+        if let Some(val) = self.properties.remove(key) {
+            Some(Cow::Owned(val))
+        } else if let Some(val) = defaults.and_then(|p| p.properties.get(key)) {
+            Some(Cow::Borrowed(val))
+        } else {
+            None
+        }
+    }
+}
+
+impl OptionalProperties for Option<GenericProperties> {
+    fn get_or_default<'a>(&mut self, defaults: Option<&'a GenericProperties>, key: &str) -> Option<Cow<'a, PropertyNode>> {
+        if let Some(val) = self.as_mut().and_then(|p| p.properties.remove(key)) {
+            Some(Cow::Owned(val))
+        } else if let Some(val) = defaults.and_then(|p| p.properties.get(key)) {
+            Some(Cow::Borrowed(val))
+        } else {
+            None
+        }
     }
 }

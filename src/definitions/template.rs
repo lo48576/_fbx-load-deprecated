@@ -10,7 +10,7 @@ use property::{GenericProperties, GenericPropertiesLoader};
 
 #[derive(Debug, Clone)]
 pub struct PropertyTemplate {
-    properties: GenericProperties,
+    pub properties: GenericProperties,
 }
 
 #[derive(Debug, Default)]

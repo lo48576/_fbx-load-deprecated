@@ -1,6 +1,7 @@
 //! Contains common stuff for node loaders.
 
 use std::io::Read;
+use std::path::Path;
 use fbx_binary_reader::{EventReader, FbxEvent, DelayedProperties};
 use error::Result;
 
@@ -66,5 +67,19 @@ pub fn ignore_current_node<R: Read>(reader: &mut EventReader<R>) -> Result<()> {
             },
             _ => {},
         }
+    }
+}
+
+pub trait FormatConvert {
+    type ImageResult: Clone;
+
+    fn binary_to_image(&mut self, binary: &[u8], path: &Path) -> Self::ImageResult;
+}
+
+impl<'a, T: FormatConvert> FormatConvert for &'a mut T {
+    type ImageResult = <T as FormatConvert>::ImageResult;
+
+    fn binary_to_image(&mut self, binary: &[u8], path: &Path) -> Self::ImageResult {
+        (**self).binary_to_image(binary, path)
     }
 }

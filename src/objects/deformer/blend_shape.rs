@@ -16,14 +16,12 @@ pub struct BlendShape {
 
 #[derive(Debug)]
 pub struct BlendShapeLoader<'a> {
-    definitions: &'a Definitions,
     obj_props: &'a ObjectProperties<'a>,
 }
 
 impl<'a> BlendShapeLoader<'a> {
-    pub fn new(definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Self {
+    pub fn new(_definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Self {
         BlendShapeLoader {
-            definitions: definitions,
             obj_props: obj_props,
         }
     }

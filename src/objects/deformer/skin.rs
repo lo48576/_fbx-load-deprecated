@@ -17,16 +17,14 @@ pub struct Skin {
 
 #[derive(Debug)]
 pub struct SkinLoader<'a> {
-    definitions: &'a Definitions,
     obj_props: &'a ObjectProperties<'a>,
     link_deform_accuracy: Option<f64>,
     skinning_type: Option<SkinningType>,
 }
 
 impl<'a> SkinLoader<'a> {
-    pub fn new(definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Self {
+    pub fn new(_definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Self {
         SkinLoader {
-            definitions: definitions,
             obj_props: obj_props,
             link_deform_accuracy: None,
             skinning_type: None,

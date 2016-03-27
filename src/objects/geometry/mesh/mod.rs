@@ -18,7 +18,7 @@ mod layer_element;
 
 #[derive(Debug, Clone)]
 pub enum VertexIndex {
-    NotTriangulated(Vec<u32>),
+    NotTriangulated(Vec<i32>),
     Triangulated(Vec<u32>),
 }
 
@@ -39,7 +39,7 @@ pub struct MeshLoader<'a> {
     //definitions: &'a Definitions,
     obj_props: &'a ObjectProperties<'a>,
     vertices: Option<Vec<[f32; 3]>>,
-    polygon_vertex_index: Option<Vec<u32>>,
+    polygon_vertex_index: Option<Vec<i32>>,
     layer_element_materials: Vec<LayerElement<()>>,
     layer_element_normals: Vec<LayerElement<[f32; 3]>>,
     layer_element_uvs: Vec<LayerElement<[f32; 2]>>,
@@ -101,7 +101,7 @@ impl<'a, R: Read> NodeLoader<R> for MeshLoader<'a> {
                 try!(ignore_current_node(reader));
             },
             "PolygonVertexIndex" => {
-                self.polygon_vertex_index = properties.iter().next().and_then(|p| p.extract_vec_i32().ok()).map(|v| v.into_iter().map(|v| v as u32).collect());
+                self.polygon_vertex_index = properties.iter().next().and_then(|p| p.extract_vec_i32().ok());
                 try!(ignore_current_node(reader));
             },
             "GeometryVersion" => {

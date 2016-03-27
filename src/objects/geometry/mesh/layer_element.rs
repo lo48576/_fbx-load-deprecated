@@ -4,6 +4,7 @@ use std::io::Read;
 use fbx_binary_reader::{EventReader, DelayedProperties};
 use error::Result;
 use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
+use super::{Mesh, VertexIndex};
 
 
 /// Mapping mode of layer element.
@@ -96,6 +97,50 @@ pub struct LayerElement<T: Copy> {
     pub mapping_mode: MappingMode,
     pub reference_mode: ReferenceMode,
     pub data: Option<Vec<T>>,
+}
+
+impl<T: Copy> LayerElement<T> {
+    /// Returns whether the layer element has data or not.
+    pub fn has_data(&self) -> bool {
+        self.data.is_some()
+    }
+
+    /// Get an element index corresponding to the given polygon vertex index (index of vertex index).
+    pub fn element_index_of_polygon_vertex(&self, mesh: &Mesh, pvi: usize) -> usize {
+        let unmapped_index = match self.mapping_mode {
+            MappingMode::ByControlPoint => match mesh.polygon_vertex_index {
+                VertexIndex::NotTriangulated(ref vec) => match vec[pvi] {
+                    i if i < 0 => !i as usize,
+                    i => i as usize,
+                },
+                VertexIndex::Triangulated(ref vec) => vec[pvi] as usize,
+            },
+            MappingMode::ByPolygonVertex => pvi,
+            MappingMode::ByPolygon => match mesh.polygon_vertex_index {
+                VertexIndex::NotTriangulated(ref vec) => {
+                    warn!("Mesh should be triangulated before `LayerElement::element_index_of_polygon_vertex()` called, or it does O(N) operation");
+                    vec.iter().take(pvi).filter(|&&v| v < 0).count()
+                },
+                VertexIndex::Triangulated(_) => pvi / 3,
+            },
+            MappingMode::AllSame => 0,
+            mode => {
+                panic!("Unsupported mapping mode: `{:?}`", mode);
+            },
+        } as usize;
+        match self.reference_mode {
+            ReferenceMode::Direct => unmapped_index,
+            ReferenceMode::IndexToDirect(ref vec) => vec[unmapped_index] as usize,
+        }
+    }
+
+    /// Get an element corresponding to the given polygon vertex index (index of vertex index).
+    ///
+    /// # Panics
+    /// The function panics `self.has_data() == false` (i.e. `self.data` is `None`).
+    pub fn element_of_polygon_vertex(&self, mesh: &Mesh, pvi: usize) -> T {
+        self.data.as_ref().expect("`LayerElement::element_of_polygon_vertex()` is called for the layer element with no data")[self.element_index_of_polygon_vertex(mesh, pvi)]
+    }
 }
 
 #[derive(Debug)]

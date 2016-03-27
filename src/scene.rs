@@ -6,6 +6,7 @@ use definitions::{Definitions, DefinitionsLoader};
 use error::{Error, Result};
 use fbx_header_extension::{FbxHeaderExtension, FbxHeaderExtensionLoader};
 use node_loader::{FormatConvert, NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
+use connections::{Connection, ConnectionsLoader};
 use objects::{Objects, ObjectsLoader};
 
 
@@ -13,6 +14,7 @@ use objects::{Objects, ObjectsLoader};
 pub struct FbxScene<I: Clone> {
     pub fbx_header_extension: FbxHeaderExtension,
     pub objects: Objects<I>,
+    pub connections: Vec<Connection>,
 }
 
 #[derive(Debug)]
@@ -21,6 +23,7 @@ pub struct FbxSceneLoader<C: FormatConvert> {
     fbx_header_extension: Option<FbxHeaderExtension>,
     definitions: Option<Definitions>,
     objects: Objects<C::ImageResult>,
+    connections: Option<Vec<Connection>>,
 }
 
 impl<C: FormatConvert>  FbxSceneLoader<C> {
@@ -30,6 +33,7 @@ impl<C: FormatConvert>  FbxSceneLoader<C> {
             fbx_header_extension: None,
             definitions: None,
             objects: Objects::new(),
+            connections: None,
         }
     }
 }
@@ -39,8 +43,9 @@ impl<C: FormatConvert> NodeLoaderCommon for FbxSceneLoader<C> {
 
     fn on_finish(self) -> Result<Self::Target> {
         Ok(FbxScene {
-            fbx_header_extension: try!(self.fbx_header_extension.ok_or(Error::UnclassifiedCritical("Required node not found".to_owned()))),
+            fbx_header_extension: try!(self.fbx_header_extension.ok_or(Error::UnclassifiedCritical("Required node `FbxHeaderExtension` not found".to_owned()))),
             objects: self.objects,
+            connections: try!(self.connections.ok_or(Error::UnclassifiedCritical("Required node `Connections` not found".to_owned()))),
         })
     }
 }
@@ -58,6 +63,9 @@ impl<R: Read, C: FormatConvert> NodeLoader<R> for FbxSceneLoader<C> {
             "Objects" => {
                 let defs = try!(self.definitions.as_mut().ok_or(Error::UnclassifiedCritical("`Definitions` is required before `Objects` node".to_owned())));
                 try!(ObjectsLoader::new(&mut self.objects, defs, &mut self.converter).load(reader));
+            },
+            "Connections" => {
+                self.connections = Some(try!(ConnectionsLoader::new().load(reader)));
             },
             _ => {
                 warn!("Unknown node: `{}`", name);

@@ -32,21 +32,31 @@ use self::video::VideoLoader;
 #[macro_use]
 mod macros {
     macro_rules! if_all_some {
-        // Specialize for single variable.
-        {($v:ident=$e:expr) $some_block:block else $none_block:block} => (
+        // Single variable.
+        {($v:pat=$e:expr) $some_block:block} => (
+            if let Some($v) = $e $some_block
+        );
+        {($v:pat=$e:expr,) $some_block:block} => (
+            if_all_some!{($v=$e) $some_block}
+        );
+        {($v:pat=$e:expr) $some_block:block else $none_block:block} => (
             if let Some($v) = $e $some_block else $none_block
         );
-        // Specialize for single variable with trailing comma.
-        {($v:ident=$e:expr,) $some_block:block else $none_block:block} => (
-            if let Some($v) = $e $some_block else $none_block
+        {($v:pat=$e:expr,) $some_block:block else $none_block:block} => (
+            if_all_some!{($v=$e) $some_block else $none_block}
         );
-        // Comma-separated multiple variables.
-        {($($v:ident=$e:expr),+) $some_block:block else $none_block:block} => (
+        // Multiple variables.
+        {($($v:pat=$e:expr),+) $some_block:block} => (
+            if let ($(Some($v)),+) = ($($e),+) $some_block
+        );
+        {($($v:pat=$e:expr),+,) $some_block:block} => (
+            if_all_some!{($($v=$e),+) $some_block}
+        );
+        {($($v:pat=$e:expr),+) $some_block:block else $none_block:block} => (
             if let ($(Some($v)),+) = ($($e),+) $some_block else $none_block
         );
-        // Allow trailing comma.
-        {($($v:ident=$e:expr),+,) $some_block:block else $none_block:block} => (
-            if let ($(Some($v)),+) = ($($e),+) $some_block else $none_block
+        {($($v:pat=$e:expr),+,) $some_block:block else $none_block:block} => (
+            if_all_some!{($($v=$e),+) $some_block else $none_block}
         );
     }
 }

@@ -171,22 +171,46 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
             return Ok(());
         };
         match name.as_ref() {
-            "CollectionExclusive" => match try!(CollectionExclusiveLoader::new(self.definitions, &obj_props).load(reader)) {
-                Some(CollectionExclusive::DisplayLayer(obj)) => self.objects.add_display_layer(obj),
-                Some(CollectionExclusive::Unknown(obj)) => self.objects.add_unknown(obj),
-                None => {},
+            "CollectionExclusive" => if let Some(loader) = CollectionExclusiveLoader::new(self.definitions, &obj_props) {
+                match try!(loader.load(reader)) {
+                    Some(CollectionExclusive::DisplayLayer(obj)) => self.objects.add_display_layer(obj),
+                    None => {
+                        error!("Failed to load `/Objects/CollectionExclusive`, treat as UnknownObject");
+                        self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                    },
+                }
+            } else {
+                error!("Failed to load `/Objects/CollectionExclusive`, treat as UnknownObject");
+                self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                try!(ignore_current_node(reader));
             },
-            "Deformer" => match try!(DeformerLoader::new(self.definitions, &obj_props).load(reader)) {
-                Some(Deformer::BlendShape(obj)) => self.objects.add_blend_shape(obj),
-                Some(Deformer::Skin(obj)) => self.objects.add_skin(obj),
-                Some(Deformer::Unknown(obj)) => self.objects.add_unknown(obj),
-                None => {},
+            "Deformer" => if let Some(loader) = DeformerLoader::new(self.definitions, &obj_props) {
+                match try!(loader.load(reader)) {
+                    Some(Deformer::BlendShape(obj)) => self.objects.add_blend_shape(obj),
+                    Some(Deformer::Skin(obj)) => self.objects.add_skin(obj),
+                    None => {
+                        error!("Failed to load `/Objects/Deformer`, treat as UnknownObject");
+                        self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                    },
+                }
+            } else {
+                error!("Failed to load `/Objects/Deformer`, treat as UnknownObject");
+                self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                try!(ignore_current_node(reader));
             },
-            "Geometry" => match try!(GeometryLoader::new(self.definitions, &obj_props).load(reader)) {
-                Some(Geometry::Mesh(obj)) => self.objects.add_geometry_mesh(obj),
-                Some(Geometry::Shape(obj)) => self.objects.add_geometry_shape(obj),
-                Some(Geometry::Unknown(obj)) => self.objects.add_unknown(obj),
-                None => {},
+            "Geometry" => if let Some(loader) = GeometryLoader::new(self.definitions, &obj_props) {
+                match try!(loader.load(reader)) {
+                    Some(Geometry::Mesh(obj)) => self.objects.add_geometry_mesh(obj),
+                    Some(Geometry::Shape(obj)) => self.objects.add_geometry_shape(obj),
+                    None => {
+                        error!("Failed to load `/Objects/Geometry`, treat as UnknownObject");
+                        self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                    },
+                }
+            } else {
+                error!("Failed to load `/Objects/Geometry`, treat as UnknownObject");
+                self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                try!(ignore_current_node(reader));
             },
             "Material" => if let Some(obj) = try!(MaterialLoader::new(self.definitions, &obj_props).load(reader)) {
                 self.objects.add_material(obj);
@@ -197,16 +221,24 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
                     "Mesh" => self.objects.add_model_mesh(obj),
                     "Null" => self.objects.add_model_null(obj),
                     val => {
-                        warn!("Unknown subclass({}) for `/Objects/Model` node, treat as UnknownObject", val);
+                        warn!("Unknown subclass ({}) for `/Objects/Model` node, treat as UnknownObject", val);
                         self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
                     },
                 }
             },
-            "NodeAttribute" => match try!(NodeAttributeLoader::new(self.definitions, &obj_props).load(reader)) {
-                Some(NodeAttribute::LimbNode(obj)) => self.objects.add_node_attribute_limb_node(obj),
-                Some(NodeAttribute::Null(obj)) => self.objects.add_node_attribute_null(obj),
-                Some(NodeAttribute::Unknown(obj)) => self.objects.add_unknown(obj),
-                None => {},
+            "NodeAttribute" => if let Some(loader) = NodeAttributeLoader::new(self.definitions, &obj_props) {
+                match try!(loader.load(reader)) {
+                    Some(NodeAttribute::LimbNode(obj)) => self.objects.add_node_attribute_limb_node(obj),
+                    Some(NodeAttribute::Null(obj)) => self.objects.add_node_attribute_null(obj),
+                    None => {
+                        error!("Failed to load `/Objects/NodeAttribute`, treat as UnknownObject");
+                        self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                    },
+                }
+            } else {
+                error!("Failed to load `/Objects/Geometry`, treat as UnknownObject");
+                self.objects.add_unknown(UnknownObject::from_object_properties(&obj_props));
+                try!(ignore_current_node(reader));
             },
             "Pose" => if let Some(obj) = try!(PoseLoader::new(self.definitions, &obj_props).load(reader)) {
                 self.objects.add_pose(obj);

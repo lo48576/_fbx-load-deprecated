@@ -7,8 +7,7 @@ use std::io::Read;
 use fbx_binary_reader::EventReader;
 use definitions::Definitions;
 use error::Result;
-use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
-use objects::UnknownObject;
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo};
 use objects::properties::ObjectProperties;
 use self::blend_shape::BlendShapeLoader;
 use self::skin::SkinLoader;
@@ -21,22 +20,23 @@ mod skin;
 pub enum Deformer {
     BlendShape(BlendShape),
     Skin(Skin),
-    Unknown(UnknownObject),
 }
 
 #[derive(Debug)]
 pub enum DeformerLoader<'a> {
     BlendShape(BlendShapeLoader<'a>),
     Skin(SkinLoader<'a>),
-    Unknown(&'a ObjectProperties<'a>),
 }
 
 impl<'a> DeformerLoader<'a> {
-    pub fn new(definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Self {
+    pub fn new(definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Option<Self> {
         match obj_props.subclass {
-            "BlendShape" => DeformerLoader::BlendShape(BlendShapeLoader::new(definitions, obj_props)),
-            "Skin" => DeformerLoader::Skin(SkinLoader::new(definitions, obj_props)),
-            _ => DeformerLoader::Unknown(obj_props),
+            "BlendShape" => Some(DeformerLoader::BlendShape(BlendShapeLoader::new(definitions, obj_props))),
+            "Skin" => Some(DeformerLoader::Skin(SkinLoader::new(definitions, obj_props))),
+            v => {
+                warn!("Unknown subclass ({}) for `/Objects/Deformer`", v);
+                None
+            },
         }
     }
 }
@@ -48,7 +48,6 @@ impl<'a> NodeLoaderCommon for DeformerLoader<'a> {
         Ok(match self {
             DeformerLoader::BlendShape(loader) => try!(loader.on_finish()).map(Deformer::BlendShape),
             DeformerLoader::Skin(loader) => try!(loader.on_finish()).map(Deformer::Skin),
-            DeformerLoader::Unknown(obj_props) => Some(Deformer::Unknown(UnknownObject::from_object_properties(obj_props))),
         })
     }
 }
@@ -58,10 +57,6 @@ impl<'a, R: Read> NodeLoader<R> for DeformerLoader<'a> {
         match *self {
             DeformerLoader::BlendShape(ref mut loader) => loader.on_child_node(reader, node_info),
             DeformerLoader::Skin(ref mut loader) => loader.on_child_node(reader, node_info),
-            DeformerLoader::Unknown(_) => {
-                try!(ignore_current_node(reader));
-                Ok(())
-            },
         }
     }
 }

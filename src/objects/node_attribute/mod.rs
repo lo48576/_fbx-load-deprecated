@@ -7,8 +7,7 @@ use std::io::Read;
 use fbx_binary_reader::EventReader;
 use definitions::Definitions;
 use error::Result;
-use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo, ignore_current_node};
-use objects::UnknownObject;
+use node_loader::{NodeLoader, NodeLoaderCommon, RawNodeInfo};
 use objects::properties::ObjectProperties;
 use self::limb_node::LimbNodeAttributeLoader;
 use self::null::NullNodeAttributeLoader;
@@ -21,24 +20,22 @@ pub mod null;
 pub enum NodeAttribute {
     LimbNode(LimbNodeAttribute),
     Null(NullNodeAttribute),
-    Unknown(UnknownObject),
 }
 
 #[derive(Debug)]
 pub enum NodeAttributeLoader<'a> {
     LimbNode(LimbNodeAttributeLoader<'a>),
     Null(NullNodeAttributeLoader<'a>),
-    Unknown(&'a ObjectProperties<'a>),
 }
 
 impl<'a> NodeAttributeLoader<'a> {
-    pub fn new(definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Self {
+    pub fn new(definitions: &'a Definitions, obj_props: &'a ObjectProperties<'a>) -> Option<Self> {
         match obj_props.subclass {
-            "LimbNode" => NodeAttributeLoader::LimbNode(LimbNodeAttributeLoader::new(definitions, obj_props)),
-            "Null" => NodeAttributeLoader::Null(NullNodeAttributeLoader::new(definitions, obj_props)),
-            val => {
-                warn!("Unknown subclass({}) for `/Objects/CollectionExclusive`, treat as UnknownObject", val);
-                NodeAttributeLoader::Unknown(obj_props)
+            "LimbNode" => Some(NodeAttributeLoader::LimbNode(LimbNodeAttributeLoader::new(definitions, obj_props))),
+            "Null" => Some(NodeAttributeLoader::Null(NullNodeAttributeLoader::new(definitions, obj_props))),
+            v => {
+                warn!("Unknown subclass ({}) for `/Objects/NodeAttribute`", v);
+                None
             },
         }
     }
@@ -51,7 +48,6 @@ impl<'a> NodeLoaderCommon for NodeAttributeLoader<'a> {
         Ok(match self {
             NodeAttributeLoader::LimbNode(loader) => try!(loader.on_finish()).map(NodeAttribute::LimbNode),
             NodeAttributeLoader::Null(loader) => try!(loader.on_finish()).map(NodeAttribute::Null),
-            NodeAttributeLoader::Unknown(obj_props) => Some(NodeAttribute::Unknown(UnknownObject::from_object_properties(obj_props))),
         })
     }
 }
@@ -61,10 +57,6 @@ impl<'a, R: Read> NodeLoader<R> for NodeAttributeLoader<'a> {
         match *self {
             NodeAttributeLoader::LimbNode(ref mut loader) => loader.on_child_node(reader, node_info),
             NodeAttributeLoader::Null(ref mut loader) => loader.on_child_node(reader, node_info),
-            NodeAttributeLoader::Unknown(_) => {
-                try!(ignore_current_node(reader));
-                Ok(())
-            },
         }
     }
 }

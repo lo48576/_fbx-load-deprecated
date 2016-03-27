@@ -1,7 +1,7 @@
 //! Contains `/Objects` node-related stuff.
 
 pub use self::collection::DisplayLayer;
-pub use self::deformer::{BlendShape, Skin, SkinningType};
+pub use self::deformer::{BlendShape, BlendShapeChannel, Cluster, Skin, SkinningType};
 pub use self::geometry::{Mesh, Shape, VertexIndex, MappingMode, ReferenceMode, LayerElement};
 pub use self::material::{Material, ShadingParameters};
 pub use self::model::{CullingType, Model};
@@ -79,6 +79,8 @@ pub type ObjectsMap<V> = HashMap<i64, V, BuildHasherDefault<FnvHasher>>;
 pub struct Objects<I: Clone> {
     pub unknown: ObjectsMap<UnknownObject>,
     pub blend_shapes: ObjectsMap<BlendShape>,
+    pub blend_shape_channels: ObjectsMap<BlendShapeChannel>,
+    pub clusters: ObjectsMap<Cluster>,
     pub display_layers: ObjectsMap<DisplayLayer>,
     pub geometry_meshes: ObjectsMap<Mesh>,
     pub geometry_shapes: ObjectsMap<Shape>,
@@ -104,6 +106,8 @@ impl<I: Clone> Objects<I> {
         Objects {
             unknown: Default::default(),
             blend_shapes: Default::default(),
+            blend_shape_channels: Default::default(),
+            clusters: Default::default(),
             display_layers: Default::default(),
             geometry_meshes: Default::default(),
             geometry_shapes: Default::default(),
@@ -132,6 +136,8 @@ macro_rules! implement_method_for_object {
 }
 implement_method_for_object!(unknown, UnknownObject, add_unknown);
 implement_method_for_object!(blend_shapes, BlendShape, add_blend_shape);
+implement_method_for_object!(blend_shape_channels, BlendShapeChannel, add_blend_shape_channel);
+implement_method_for_object!(clusters, Cluster, add_cluster);
 implement_method_for_object!(display_layers, DisplayLayer, add_display_layer);
 implement_method_for_object!(geometry_meshes, Mesh, add_geometry_mesh);
 implement_method_for_object!(geometry_shapes, Shape, add_geometry_shape);
@@ -197,6 +203,8 @@ impl<'a, R: Read, C: FormatConvert> NodeLoader<R> for ObjectsLoader<'a, C> {
             "Deformer" => if let Some(loader) = DeformerLoader::new(self.definitions, &obj_props) {
                 match try!(loader.load(reader)) {
                     Some(Deformer::BlendShape(obj)) => self.objects.add_blend_shape(obj),
+                    Some(Deformer::BlendShapeChannel(obj)) => self.objects.add_blend_shape_channel(obj),
+                    Some(Deformer::Cluster(obj)) => self.objects.add_cluster(obj),
                     Some(Deformer::Skin(obj)) => self.objects.add_skin(obj),
                     None => {
                         error!("Failed to load `/Objects/Deformer`, treat as UnknownObject");

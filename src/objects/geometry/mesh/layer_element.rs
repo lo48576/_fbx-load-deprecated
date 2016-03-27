@@ -99,7 +99,7 @@ pub struct LayerElement<T: Copy> {
 }
 
 #[derive(Debug)]
-pub enum ReferenceModeType {
+enum ReferenceModeType {
     Direct,
     IndexToDirect,
 }
@@ -138,14 +138,14 @@ impl LoadAsLayerElementElement for [f32; 3] {
 
 #[derive(Debug)]
 pub struct LayerElementLoader<'a, T: LoadAsLayerElementElement> {
-    pub data_node_name: &'a str,
-    pub index_node_name: &'a str,
-    pub channel: i32,
-    pub name: Option<String>,
-    pub mapping_mode: Option<MappingMode>,
-    pub reference_mode: Option<ReferenceModeType>,
-    pub data: Option<Vec<T>>,
-    pub index: Option<Vec<u32>>,
+    data_node_name: &'a str,
+    index_node_name: &'a str,
+    channel: i32,
+    name: Option<String>,
+    mapping_mode: Option<MappingMode>,
+    reference_mode: Option<ReferenceModeType>,
+    data: Option<Vec<T>>,
+    index: Option<Vec<u32>>,
 }
 
 impl<'a, T: LoadAsLayerElementElement> LayerElementLoader<'a, T> {

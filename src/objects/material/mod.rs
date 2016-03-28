@@ -1,6 +1,6 @@
 //! Contains `/Objects/Material` node-related stuff.
 
-pub use self::shading_parameters::ShadingParameters;
+pub use self::shading_parameters::{ShadingParameters, LambertParameters, PhongParameters};
 
 use std::io::Read;
 use fbx_binary_reader::EventReader;

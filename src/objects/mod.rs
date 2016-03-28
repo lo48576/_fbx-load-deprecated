@@ -3,7 +3,7 @@
 pub use self::collection::DisplayLayer;
 pub use self::deformer::{BlendShape, BlendShapeChannel, Cluster, Skin, SkinningType};
 pub use self::geometry::{Mesh, Shape, VertexIndex, MappingMode, ReferenceMode, LayerElement};
-pub use self::material::{Material, ShadingParameters};
+pub use self::material::{Material, ShadingParameters, LambertParameters, PhongParameters};
 pub use self::model::{CullingType, Model};
 pub use self::node_attribute::{LimbNodeAttribute, NullNodeAttribute, NodeAttributeType, NullNodeLook};
 pub use self::pose::{Pose, PoseNode};

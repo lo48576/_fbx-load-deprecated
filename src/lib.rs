@@ -18,6 +18,7 @@ pub mod fbx_header_extension;
 pub mod objects;
 pub mod property;
 pub mod scene;
+pub mod utils;
 
 mod node_loader;
 

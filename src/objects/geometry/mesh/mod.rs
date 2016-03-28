@@ -34,6 +34,178 @@ pub struct Mesh {
     pub layers: Vec<Layer>,
 }
 
+impl Mesh {
+    /// Triangulates all polygons in the mesh with the given triangulation function.
+    ///
+    /// This function modifies `polygon_vertex_index` and layer elements, but doesn't change
+    /// `vertices`.
+    pub fn triangulate<F>(&mut self, triangulator: F)
+        where F: Fn(&[[f32; 3]], &[u32], &mut Vec<u32>) -> u32
+    {
+        // Triangulate and update layer elements only when the vertex index (polygon vertices) is
+        // not yet triangulated.
+        if let Some((tri_vertex_index, tri_pvi_to_src_pvi, tri_poly_to_src_poly)) = self.triangulate_polygon_index(triangulator) {
+            self.polygon_vertex_index = VertexIndex::Triangulated(tri_vertex_index);
+            // Update layer elements in accordance with updated polygon vertices
+            // `tri_vertex_index`.
+            self.apply_triangulation_to_layer_elements(tri_pvi_to_src_pvi, tri_poly_to_src_poly);
+            // FIXME: When control points are changed, Geometry(Shape) node should also be
+            //        modified.
+        }
+    }
+
+    fn triangulate_polygon_index<F>(&self, triangulator: F) -> Option<(Vec<u32>, Vec<u32>, Vec<u32>)>
+        where F: Fn(&[[f32; 3]], &[u32], &mut Vec<u32>) -> u32
+    {
+        // Triangulate and update layer elements only when the vertex index (polygon vertices) is
+        // not yet triangulated.
+        let polygon_vertex_index = if let VertexIndex::NotTriangulated(ref polygon_vertex_index) = self.polygon_vertex_index {
+            polygon_vertex_index
+        } else {
+            return None;
+        };
+        // Triangulation.
+
+        // # Return values (of this method)
+        // `tri_vertex_index`: Polygon vertex indeices of triangulated polygons.
+        // `tri_pvi_to_src_pvi`: "Triangulated polygon vertex index to source polygon vertex index".
+        //                       Array to convert polygon vertex (index) of triangulated polygons
+        //                       to source polygon vertex.
+        //                       Note that "polygon vertex" means "index to control point", and
+        //                       "control point" means "vertex".
+        //                       See [Help: FbxMesh Class
+        //                       Reference](http://help.autodesk.com/view/FBX/2016/ENU/?guid=__cpp_ref_class_fbx_mesh_html#details)
+        //                       for these terms.
+        // `tri_poly_to_src_poly`: Array to convert index of triangles to index of source polygons.
+        //                         This will be necessary to modify layer elements with mapping
+        //                         mode `ByPolygon`.
+        let mut tri_vertex_index = vec![];
+        let mut tri_pvi_to_src_pvi = vec![];
+        let mut tri_poly_to_src_poly = vec![];
+
+        // # Temporary variables
+        // Iterator of source polygon vertex.
+        let mut source_pv_iter = polygon_vertex_index.iter().enumerate();
+        // Polygon vertices of a processing polygon.
+        let mut current_polygon_pv = vec![];
+        // Polygon-local (beginning from 0) indices of polygon vertex of a triangulated polygons.
+        let mut tri_local_indices = Vec::with_capacity(polygon_vertex_index.len());
+        // Current polygon index.
+        let mut current_poly_index = 0;
+
+        'all_indices: loop {
+            current_polygon_pv.clear();
+            tri_local_indices.clear();
+            // Index of polygon vertex at the beginning of the current polygon.
+            let start_pv_index;
+            // Get single polygon.
+            'getting_polygon: loop {
+                if let Some((pv_index, &current_pv)) = source_pv_iter.next() {
+                    if current_pv < 0 {
+                        // This `pv_index` is the last polygon vertex of the current polygon.
+                        current_polygon_pv.push(!current_pv as u32);
+                        start_pv_index = pv_index - (current_polygon_pv.len() - 1);
+                        break 'getting_polygon;
+                    } else {
+                        current_polygon_pv.push(current_pv as u32);
+                    }
+                } else {
+                    // No more valid polygons to triangulate.
+                    if !current_polygon_pv.is_empty() {
+                        warn!("Polygon vertex index didn't end with negtive number");
+                    }
+                    break 'all_indices;
+                }
+            }
+            // Triangulate the gotten polygon.
+            let num_of_triangles = triangulator(&self.vertices, &current_polygon_pv, &mut tri_local_indices);
+            assert_eq!(num_of_triangles as usize * 3, tri_local_indices.len());
+
+            tri_vertex_index.extend(tri_local_indices.iter().map(|&i| current_polygon_pv[i as usize]));
+            tri_pvi_to_src_pvi.extend(tri_local_indices.iter().map(|&i| start_pv_index as u32 + i));
+            {
+                let tri_poly_to_src_poly_len = tri_poly_to_src_poly.len();
+                tri_poly_to_src_poly.resize(tri_poly_to_src_poly_len + num_of_triangles as usize, current_poly_index);
+            }
+            current_poly_index += 1;
+        }
+
+        if tri_vertex_index.len() > ::std::u32::MAX as usize {
+            // Not a bug, but unsupported data.
+            panic!("Too many triangles in mesh (id={}, name=`{}`): length of vertex indices ({}) is over u32::MAX", self.id, self.name, tri_vertex_index.len());
+        }
+        assert_eq!(tri_vertex_index.len(), tri_pvi_to_src_pvi.len());
+        assert_eq!(tri_vertex_index.len() % 3, 0);
+
+        // Triangulation is done.
+        Some((tri_vertex_index, tri_pvi_to_src_pvi, tri_poly_to_src_poly))
+    }
+
+    fn apply_triangulation_to_layer_elements(&mut self, tri_pvi_to_src_pvi: Vec<u32>, tri_poly_to_src_poly: Vec<u32>) {
+        update_layer_elements(&mut self.layer_element_materials, &tri_pvi_to_src_pvi, &tri_poly_to_src_poly);
+        update_layer_elements(&mut self.layer_element_normals, &tri_pvi_to_src_pvi, &tri_poly_to_src_poly);
+        update_layer_elements(&mut self.layer_element_uvs, &tri_pvi_to_src_pvi, &tri_poly_to_src_poly);
+    }
+
+    /// Returns "polygon vertex" (control point index) list of triangulated polygon.
+    ///
+    /// # Panics
+    /// This function should be called on `triangulate()`d mesh.
+    /// If the mesh is not yet triangulated, this function panics.
+    pub fn triangulated_index_list(&self) -> &Vec<u32> {
+        match self.polygon_vertex_index {
+            VertexIndex::Triangulated(ref pvi) => &pvi,
+            _ => panic!("`Mesh::get_expanded_triangles_list()` called on not triangulated mesh"),
+        }
+    }
+}
+
+fn update_layer_elements<T: Copy>(layer_elements: &mut Vec<LayerElement<T>>, tri_pvi_to_src_pvi: &Vec<u32>, tri_poly_to_src_poly: &Vec<u32>) {
+    for le in layer_elements {
+        match le.mapping_mode {
+            // None: No knowledge about the mapping mode.
+            MappingMode::None |
+            // ByControlPoint: Control point is not changed.
+            MappingMode::ByControlPoint |
+            // ByEdge: Edge-related feature is not supported by current `fbx_load` crate.
+            MappingMode::ByEdge |
+            // AllSame: No dependency on polygons.
+            MappingMode::AllSame => {
+                // Do nothing.
+            },
+            MappingMode::ByPolygonVertex => {
+                // NOTE: Update can be more effective by changing reference mode from `Direct`
+                //       to `IndexToDirect`, but this function doesn't do it (because the modes
+                //       restriction for each layer element is unknown).
+                match le.reference_mode {
+                    ReferenceMode::Direct => {
+                        // Update vertices.
+                        if let Some(ref mut data) = le.data {
+                            *data = tri_pvi_to_src_pvi.iter().map(|&i| data[i as usize]).collect();
+                        }
+                    },
+                    ReferenceMode::IndexToDirect(ref mut indices) => {
+                        // Update index.
+                        *indices = tri_pvi_to_src_pvi.iter().map(|&src_pvi| indices[src_pvi as usize]).collect();
+                    },
+                }
+            },
+            MappingMode::ByPolygon => {
+                match le.reference_mode {
+                    ReferenceMode::Direct => {
+                        if let Some(ref mut data) = le.data {
+                            *data = tri_poly_to_src_poly.iter().map(|&i| data[i as usize]).collect();
+                        }
+                    },
+                    ReferenceMode::IndexToDirect(ref mut indices) => {
+                        *indices = tri_poly_to_src_poly.iter().map(|&src_poly| indices[src_poly as usize]).collect();
+                    },
+                }
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct MeshLoader<'a> {
     //definitions: &'a Definitions,

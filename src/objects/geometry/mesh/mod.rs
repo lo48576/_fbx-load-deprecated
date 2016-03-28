@@ -268,7 +268,7 @@ impl<'a, R: Read> NodeLoader<R> for MeshLoader<'a> {
                         .into_iter().find(|vec| vec.len() > 0) // Prevent vec.chunks() from panicking.
                         .map(|vec| {
                             let len = vec.len() / 3;
-                            vec.chunks(len).map(|v| [v[0], v[1], v[2]]).collect()
+                            vec.chunks(3).take(len).map(|v| [v[0], v[1], v[2]]).collect()
                         }));
                 try!(ignore_current_node(reader));
             },

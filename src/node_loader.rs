@@ -71,7 +71,7 @@ pub fn ignore_current_node<R: Read>(reader: &mut EventReader<R>) -> Result<()> {
 }
 
 pub trait FormatConvert {
-    type ImageResult: Clone;
+    type ImageResult;
 
     fn binary_to_image(&mut self, binary: &[u8], path: &Path) -> Self::ImageResult;
 }

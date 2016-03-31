@@ -10,8 +10,8 @@ use objects::properties::ObjectProperties;
 use property::{GenericProperties, GenericPropertiesLoader, OptionalProperties};
 
 
-#[derive(Debug, Clone)]
-pub struct Video<I: Clone> {
+#[derive(Debug)]
+pub struct Video<I> {
     pub id: i64,
     pub name: String,
     pub path: PathBuf,
@@ -19,6 +19,20 @@ pub struct Video<I: Clone> {
     pub filename: PathBuf,
     pub relative_filename: PathBuf,
     pub content: Option<I>,
+}
+
+impl<I: Clone> Clone for Video<I> {
+    fn clone(&self) -> Self {
+        Video {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            path: self.path.clone(),
+            use_mip_map: self.use_mip_map.clone(),
+            filename: self.filename.clone(),
+            relative_filename: self.relative_filename.clone(),
+            content: self.content.clone(),
+        }
+    }
 }
 
 #[derive(Debug)]

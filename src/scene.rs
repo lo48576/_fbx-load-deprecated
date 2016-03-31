@@ -10,11 +10,21 @@ use connections::{Connection, ConnectionsLoader};
 use objects::{Objects, ObjectsLoader};
 
 
-#[derive(Debug, Clone)]
-pub struct FbxScene<I: Clone> {
+#[derive(Debug)]
+pub struct FbxScene<I> {
     pub fbx_header_extension: FbxHeaderExtension,
     pub objects: Objects<I>,
     pub connections: Vec<Connection>,
+}
+
+impl<I: Clone> Clone for FbxScene<I> {
+    fn clone(&self) -> Self {
+        FbxScene {
+            fbx_header_extension: self.fbx_header_extension.clone(),
+            objects: self.objects.clone(),
+            connections: self.connections.clone(),
+        }
+    }
 }
 
 #[derive(Debug)]

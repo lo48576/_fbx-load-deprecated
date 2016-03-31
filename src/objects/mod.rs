@@ -75,8 +75,8 @@ pub mod video;
 
 pub type ObjectsMap<V> = HashMap<i64, V, BuildHasherDefault<FnvHasher>>;
 
-#[derive(Debug, Default, Clone)]
-pub struct Objects<I: Clone> {
+#[derive(Debug, Default)]
+pub struct Objects<I> {
     pub unknown: ObjectsMap<UnknownObject>,
     pub blend_shapes: ObjectsMap<BlendShape>,
     pub blend_shape_channels: ObjectsMap<BlendShapeChannel>,
@@ -96,7 +96,7 @@ pub struct Objects<I: Clone> {
     pub videos: ObjectsMap<Video<I>>,
 }
 
-impl<I: Clone> Objects<I> {
+impl<I> Objects<I> {
     pub fn new() -> Self {
         // TODO: It doesn't seem rustc-1.7.0 work correctly, `Default::default()` cannot compile
         //       (> error: the trait `core::default::Default` is not implemented for the type `I` [E0277]).
@@ -127,7 +127,7 @@ impl<I: Clone> Objects<I> {
 
 macro_rules! implement_method_for_object {
     ($plural:ident, $t:ty, $add_method:ident) => (
-        impl<I: Clone> Objects<I> {
+        impl<I> Objects<I> {
             pub fn $add_method(&mut self, obj: $t) {
                 self.$plural.insert(obj.id, obj);
             }
@@ -151,6 +151,30 @@ implement_method_for_object!(poses, Pose, add_pose);
 implement_method_for_object!(skins, Skin, add_skin);
 implement_method_for_object!(textures, Texture, add_texture);
 implement_method_for_object!(videos, Video<I>, add_video);
+
+impl<I: Clone> Clone for Objects<I> {
+    fn clone(&self) -> Self {
+        Objects {
+            unknown: self.unknown.clone(),
+            blend_shapes: self.blend_shapes.clone(),
+            blend_shape_channels: self.blend_shape_channels.clone(),
+            clusters: self.clusters.clone(),
+            display_layers: self.display_layers.clone(),
+            geometry_meshes: self.geometry_meshes.clone(),
+            geometry_shapes: self.geometry_shapes.clone(),
+            materials: self.materials.clone(),
+            model_limb_nodes: self.model_limb_nodes.clone(),
+            model_meshes: self.model_meshes.clone(),
+            model_nulls: self.model_nulls.clone(),
+            node_attribute_nulls: self.node_attribute_nulls.clone(),
+            node_attribute_limb_nodes: self.node_attribute_limb_nodes.clone(),
+            poses: self.poses.clone(),
+            skins: self.skins.clone(),
+            textures: self.textures.clone(),
+            videos: self.videos.clone(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct ObjectsLoader<'a, C: 'a + FormatConvert> {

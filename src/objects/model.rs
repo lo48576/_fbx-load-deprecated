@@ -17,6 +17,7 @@ pub struct Model {
     pub culling: CullingType,
     pub axis_len: f64,
     pub show: bool,
+    pub inherit_type: InheritType,
 }
 
 #[derive(Debug)]
@@ -28,6 +29,7 @@ pub struct ModelLoader<'a> {
     culling: Option<CullingType>,
     axis_len: Option<f64>,
     show: Option<bool>,
+    inherit_type: Option<InheritType>,
 }
 
 impl<'a> ModelLoader<'a> {
@@ -40,6 +42,7 @@ impl<'a> ModelLoader<'a> {
             culling: None,
             axis_len: None,
             show: None,
+            inherit_type: None,
         }
     }
 }
@@ -51,6 +54,7 @@ impl<'a> NodeLoaderCommon for ModelLoader<'a> {
         let defaults = self.definitions.templates.templates.get(&("Model".to_owned(), "FbxNode".to_owned())).map(|t| &t.properties);
         let axis_len = self.properties.get_or_default(defaults, "AxisLen").and_then(|p| p.value.get_f64());
         let show = self.properties.get_or_default(defaults, "Show").and_then(|p| p.value.get_i64()).map(|v| v != 0);
+        let inherit_type = self.properties.get_or_default(defaults, "InheritType").and_then(|p| p.value.get_i64()).and_then(InheritType::from_i64);
         // There still remains many properties to read. For more information, see [Help: FbxNode Class
         // Reference](http://help.autodesk.com/view/FBX/2016/ENU/?guid=__cpp_ref_class_fbx_node_html#pub-attribs).
         if_all_some!{(
@@ -58,6 +62,7 @@ impl<'a> NodeLoaderCommon for ModelLoader<'a> {
             culling=self.culling,
             axis_len=axis_len,
             show=show,
+            inherit_type=inherit_type,
         ) {
             Ok(Some(Model {
                 id: self.obj_props.id,
@@ -66,6 +71,7 @@ impl<'a> NodeLoaderCommon for ModelLoader<'a> {
                 culling: culling,
                 axis_len: axis_len,
                 show: show,
+                inherit_type: inherit_type,
             }))
         } else {
             error!("Required property not found for `/Objects/Model({})`", self.obj_props.subclass);
@@ -124,6 +130,26 @@ impl CullingType {
             "CullingOff" => Some(CullingType::Off),
             "CullingOnCCW" => Some(CullingType::Ccw),
             "CullingOnCW" => Some(CullingType::Cw),
+            _ => None,
+        }
+    }
+}
+
+/// See [Help: FbxTransform Class
+/// Reference](http://help.autodesk.com/cloudhelp/2016/ENU/FBX-Developer-Help/cpp_ref/class_fbx_transform.html#a0affdd70d8df512d82fdb6a30112bf0c).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InheritType {
+    RrSs,
+    RSrs,
+    Rrs,
+}
+
+impl InheritType {
+    pub fn from_i64(v: i64) -> Option<InheritType> {
+        match v {
+            0 => Some(InheritType::RrSs),
+            1 => Some(InheritType::RSrs),
+            2 => Some(InheritType::Rrs),
             _ => None,
         }
     }

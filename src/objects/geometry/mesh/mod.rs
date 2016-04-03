@@ -54,7 +54,7 @@ impl Mesh {
             self.polygon_vertex_index = VertexIndex::Triangulated(result.tri_vertex_index);
             // Update layer elements in accordance with updated polygon vertices
             // `tri_vertex_index`.
-            self.apply_triangulation_to_layer_elements(result.tri_pvi_to_src_pvi, result.tri_poly_to_src_poly);
+            self.apply_triangulation_to_layer_elements(&result.tri_pvi_to_src_pvi, &result.tri_poly_to_src_poly);
             // FIXME: When control points are changed, Geometry(Shape) node should also be
             //        modified.
         }
@@ -151,10 +151,10 @@ impl Mesh {
         })
     }
 
-    fn apply_triangulation_to_layer_elements(&mut self, tri_pvi_to_src_pvi: Vec<u32>, tri_poly_to_src_poly: Vec<u32>) {
-        update_layer_elements(&mut self.layer_element_materials, &tri_pvi_to_src_pvi, &tri_poly_to_src_poly);
-        update_layer_elements(&mut self.layer_element_normals, &tri_pvi_to_src_pvi, &tri_poly_to_src_poly);
-        update_layer_elements(&mut self.layer_element_uvs, &tri_pvi_to_src_pvi, &tri_poly_to_src_poly);
+    fn apply_triangulation_to_layer_elements(&mut self, tri_pvi_to_src_pvi: &Vec<u32>, tri_poly_to_src_poly: &Vec<u32>) {
+        update_layer_elements(&mut self.layer_element_materials, tri_pvi_to_src_pvi, tri_poly_to_src_poly);
+        update_layer_elements(&mut self.layer_element_normals, tri_pvi_to_src_pvi, tri_poly_to_src_poly);
+        update_layer_elements(&mut self.layer_element_uvs, tri_pvi_to_src_pvi, tri_poly_to_src_poly);
     }
 
     /// Returns "polygon vertex" (control point index) list of triangulated polygon.

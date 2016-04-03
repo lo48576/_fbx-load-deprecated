@@ -22,6 +22,12 @@ pub enum VertexIndex {
     Triangulated(Vec<u32>),
 }
 
+struct TriangulationInfo {
+    pub tri_vertex_index: Vec<u32>,
+    pub tri_pvi_to_src_pvi: Vec<u32>,
+    pub tri_poly_to_src_poly: Vec<u32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Mesh {
     pub id: i64,
@@ -44,17 +50,17 @@ impl Mesh {
     {
         // Triangulate and update layer elements only when the vertex index (polygon vertices) is
         // not yet triangulated.
-        if let Some((tri_vertex_index, tri_pvi_to_src_pvi, tri_poly_to_src_poly)) = self.triangulate_polygon_index(triangulator) {
-            self.polygon_vertex_index = VertexIndex::Triangulated(tri_vertex_index);
+        if let Some(result) = self.triangulate_polygon_index(triangulator) {
+            self.polygon_vertex_index = VertexIndex::Triangulated(result.tri_vertex_index);
             // Update layer elements in accordance with updated polygon vertices
             // `tri_vertex_index`.
-            self.apply_triangulation_to_layer_elements(tri_pvi_to_src_pvi, tri_poly_to_src_poly);
+            self.apply_triangulation_to_layer_elements(result.tri_pvi_to_src_pvi, result.tri_poly_to_src_poly);
             // FIXME: When control points are changed, Geometry(Shape) node should also be
             //        modified.
         }
     }
 
-    fn triangulate_polygon_index<F>(&self, triangulator: F) -> Option<(Vec<u32>, Vec<u32>, Vec<u32>)>
+    fn triangulate_polygon_index<F>(&self, triangulator: F) -> Option<TriangulationInfo>
         where F: Fn(&[[f32; 3]], &[u32], &mut Vec<u32>) -> u32
     {
         // Triangulate and update layer elements only when the vertex index (polygon vertices) is
@@ -138,7 +144,11 @@ impl Mesh {
         assert_eq!(tri_vertex_index.len() % 3, 0);
 
         // Triangulation is done.
-        Some((tri_vertex_index, tri_pvi_to_src_pvi, tri_poly_to_src_poly))
+        Some(TriangulationInfo {
+            tri_vertex_index: tri_vertex_index,
+            tri_pvi_to_src_pvi: tri_pvi_to_src_pvi,
+            tri_poly_to_src_poly: tri_poly_to_src_poly,
+        })
     }
 
     fn apply_triangulation_to_layer_elements(&mut self, tri_pvi_to_src_pvi: Vec<u32>, tri_poly_to_src_poly: Vec<u32>) {

@@ -168,8 +168,11 @@ impl Mesh {
     }
 }
 
-fn update_layer_elements<T: Copy>(layer_elements: &mut Vec<LayerElement<T>>, tri_pvi_to_src_pvi: &Vec<u32>, tri_poly_to_src_poly: &Vec<u32>) {
-    for le in layer_elements {
+fn update_layer_elements<'a, T, I>(layer_elements: I, tri_pvi_to_src_pvi: &Vec<u32>, tri_poly_to_src_poly: &Vec<u32>)
+    where T: 'a + Copy,
+          I: 'a + IntoIterator<Item = &'a mut LayerElement<T>>,
+{
+    for le in layer_elements.into_iter() {
         match le.mapping_mode {
             // None: No knowledge about the mapping mode.
             MappingMode::None |

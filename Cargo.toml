@@ -3,6 +3,14 @@ name = "fbx-load"
 version = "0.0.1"
 authors = ["Takuma Yoshioka <nu11p0.6477@gmail.com>"]
 
+#documentation = "http://l1048576.github.io/fbx-load/doc/fbx_load/index.html"
+homepage = "https://github.com/l1048576/fbx-load"
+repository = "https://github.com/l1048576/fbx-load"
+readme = "README.adoc"
+keywords = ["fbx", "graphics", "3d", "model"]
+license = "MIT OR Apache-2.0"
+description = "High-level FBX library"
+
 [dependencies]
 fbx-binary-reader = { git = "https://github.com/l1048576/fbx-binary-reader.git", tag = "ver-0.1.0" }
 fnv = "^1.0"

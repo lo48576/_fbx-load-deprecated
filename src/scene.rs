@@ -17,6 +17,16 @@ pub struct FbxScene<I> {
     pub connections: Vec<Connection>,
 }
 
+impl<I> FbxScene<I> {
+    pub fn triangulate<F>(&mut self, triangulator: F)
+        where F: Fn(&[[f32; 3]], &[u32], &mut Vec<u32>) -> u32
+    {
+        for (_id, mesh) in &mut self.objects.geometry_meshes {
+            mesh.triangulate(&triangulator);
+        }
+    }
+}
+
 impl<I: Clone> Clone for FbxScene<I> {
     fn clone(&self) -> Self {
         FbxScene {

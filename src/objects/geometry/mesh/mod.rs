@@ -55,8 +55,6 @@ impl Mesh {
             // Update layer elements in accordance with updated polygon vertices
             // `tri_vertex_index`.
             self.apply_triangulation_to_layer_elements(&result.tri_pvi_to_src_pvi, &result.tri_poly_to_src_poly);
-            // FIXME: When control points are changed, Geometry(Shape) node should also be
-            //        modified.
         }
     }
 

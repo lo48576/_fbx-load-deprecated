@@ -5,6 +5,9 @@ It would be useful to use FBX data as 3D contents.
 
 This library supports FBX 7.4 or later.
 
+//== Documentation
+//link:http://l1048576.github.io/fbx-load/doc/fbx_load/index.html[Link to the documentation]
+
 == License
 
 Licensed under either of
